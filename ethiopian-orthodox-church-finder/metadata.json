@@ -1,0 +1,7 @@
+{
+  "name": "Ethiopian Orthodox Church Finder",
+  "description": "A centralized platform to discover Ethiopian Orthodox churches, connect with clergy, attend events, and support the community.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
