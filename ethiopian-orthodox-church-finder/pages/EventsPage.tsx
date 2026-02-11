@@ -32,8 +32,8 @@ export const EventsPage: React.FC<EventsPageProps> = ({
                         events.map((event) => (
                         <EventCard 
                             key={event.id} 
-                            event={event} 
-                            onClick={onViewEventDetails}
+                            event={event}
+                            onViewDetails={onViewEventDetails}
                         />
                         ))
                     ) : (

@@ -1,17 +1,22 @@
 
 import React, { useState } from 'react';
-import { Church } from '../types';
-import { MapPin, Phone, ArrowLeft, Heart, CheckCircle, CreditCard, Calendar, Clock, Globe, Info, Accessibility, Car, BookOpen } from 'lucide-react';
+import { Church, ChurchEvent } from '../types';
+import { MapPin, Phone, ArrowLeft, Heart, CheckCircle, CreditCard, Calendar, Clock, Globe, Info, Accessibility, Car, BookOpen, Edit, Plus } from 'lucide-react';
 import { EventCard } from './EventCard';
+import { DEFAULT_CHURCH_IMAGE, DEFAULT_CLERGY_IMAGE } from '../constants';
 
 interface ChurchDetailProps {
   church: Church;
   onBack: () => void;
   onToggleFollow: (id: string) => void;
   isFollowing: boolean;
+  onViewEventDetails?: (event: ChurchEvent) => void;
+  isAdmin?: boolean;
+  onEditChurch?: () => void;
+  onAddEvent?: () => void;
 }
 
-export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onToggleFollow, isFollowing }) => {
+export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onToggleFollow, isFollowing, onViewEventDetails, isAdmin, onEditChurch, onAddEvent }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'clergy' | 'events' | 'donate'>('overview');
 
   return (
@@ -19,7 +24,7 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
       {/* Header Image */}
       <div className="h-64 md:h-80 w-full relative bg-gray-900">
         <img 
-          src={church.interiorImageUrl || church.imageUrl} 
+          src={church.imageUrl || DEFAULT_CHURCH_IMAGE} 
           alt={church.name} 
           className="w-full h-full object-cover opacity-60"
         />
@@ -45,19 +50,40 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
               </p>
             </div>
             <div className="mt-4 md:mt-0 flex space-x-3">
-              <button 
-                onClick={() => onToggleFollow(church.id)}
-                className={`flex items-center px-6 py-3 rounded-lg font-bold transition-colors ${isFollowing ? 'bg-white text-red-500' : 'bg-transparent border border-white text-white hover:bg-white/10'}`}
-              >
-                <Heart className={`h-5 w-5 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
-                {isFollowing ? 'Following' : 'Follow'}
-              </button>
-              <button 
-                onClick={() => setActiveTab('donate')}
-                className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg"
-              >
-                Donate
-              </button>
+              {isAdmin && onEditChurch && onAddEvent ? (
+                <>
+                  <button 
+                    onClick={onEditChurch}
+                    className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg"
+                  >
+                    <Edit className="h-5 w-5 mr-2" />
+                    Edit Church
+                  </button>
+                  <button 
+                    onClick={onAddEvent}
+                    className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors shadow-lg"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Add Event
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => onToggleFollow(church.id)}
+                    className={`flex items-center px-6 py-3 rounded-lg font-bold transition-colors ${isFollowing ? 'bg-white text-red-500' : 'bg-transparent border border-white text-white hover:bg-white/10'}`}
+                  >
+                    <Heart className={`h-5 w-5 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('donate')}
+                    className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg"
+                  >
+                    Donate
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -197,7 +223,7 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
                     <div key={cleric.id} className="bg-white border border-gray-100 rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
                     <div className="w-24 h-24 mx-auto mb-4 relative">
                         <img 
-                            src={cleric.imageUrl} 
+                            src={cleric.imageUrl || DEFAULT_CLERGY_IMAGE} 
                             alt={cleric.name} 
                             className="w-full h-full object-cover rounded-full border-4 border-gray-50"
                         />
@@ -221,7 +247,7 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
              {church.events.length > 0 ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {church.events.map(event => (
-                        <EventCard key={event.id} event={event} />
+                        <EventCard key={event.id} event={event} onViewDetails={onViewEventDetails} />
                     ))}
                  </div>
              ) : (

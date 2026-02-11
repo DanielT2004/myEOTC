@@ -5,7 +5,22 @@ export enum ViewState {
   CHURCH_DETAIL = 'CHURCH_DETAIL',
   EVENTS = 'EVENTS',
   EVENT_DETAIL = 'EVENT_DETAIL',
-  REGISTER_CHURCH = 'REGISTER_CHURCH'
+  REGISTER_CHURCH = 'REGISTER_CHURCH',
+  LOGIN = 'LOGIN',
+  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
+  CHURCH_ADMIN_DASHBOARD = 'CHURCH_ADMIN_DASHBOARD'
+}
+
+export type UserRole = 'user' | 'church_admin' | 'super_admin';
+export type ChurchStatus = 'pending' | 'approved' | 'rejected';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  role: UserRole;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ClergyMember {
@@ -61,11 +76,16 @@ export interface Church {
     website?: string;
   };
   isVerified: boolean;
+  status?: ChurchStatus; // Database field
+  adminId?: string; // Database field
+  verificationDocumentUrl?: string; // Database field
   distance?: number; // Calculated at runtime
   coordinates: {
     lat: number;
     lng: number;
   };
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface FilterState {

@@ -10,6 +10,47 @@ export const SERVICE_OPTIONS = [
   "Wedding Ceremonies"
 ];
 
+export const SPECIAL_PROGRAMS = [
+  "Youth English Class",
+  "Amharic School",
+  "Sunday School",
+  "Bible Study",
+  "Youth Programs",
+  "Community Outreach",
+  "Choir",
+  "Women's Group",
+  "Men's Group",
+  "Elderly Support",
+  "Food Pantry",
+  "Counseling Services"
+];
+
+export const DAYS_OF_WEEK = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday"
+];
+
+export const REPEAT_OPTIONS = [
+  "Every Week",
+  "Every 2 Weeks",
+  "Monthly",
+  "First of Month",
+  "Last of Month",
+  "Daily"
+];
+
+export const LANGUAGES = [
+  "Amharic",
+  "English",
+  "Ge'ez",
+  "Tigrinya"
+];
+
 export const EVENT_TYPES = [
   "Holiday",
   "Bible Study",
@@ -17,6 +58,29 @@ export const EVENT_TYPES = [
   "Worship",
   "Fundraiser"
 ];
+
+// Default images for churches and events
+// 
+// HOW TO USE YOUR OWN IMAGES:
+// 
+// Option 1: Host images in your project (Recommended)
+//   1. Create a 'public/images' folder in your project root
+//   2. Add your images: default-church.jpg, default-event.jpg, etc.
+//   3. Update the URLs below to: '/images/default-church.jpg'
+//
+// Option 2: Use external hosting (Cloudinary, AWS S3, etc.)
+//   1. Upload your images to your hosting service
+//   2. Replace the URLs below with your hosted image URLs
+//
+// Option 3: Use Supabase Storage (if you're already using it)
+//   1. Upload images to your Supabase storage bucket
+//   2. Get the public URL and replace the URLs below
+//
+// Current URLs use Unsplash (free stock photos) as placeholders
+
+export const DEFAULT_CHURCH_IMAGE = 'https://plus.unsplash.com/premium_photo-1680100349601-7694f71db99b?q=80&w=987&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+export const DEFAULT_EVENT_IMAGE = 'https://images.unsplash.com/photo-1549687880-f68be654594c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+export const DEFAULT_CLERGY_IMAGE = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&q=80';
 
 // Mock Events corresponding to LA Churches
 export const MOCK_EVENTS: ChurchEvent[] = [

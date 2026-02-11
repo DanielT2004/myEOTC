@@ -2,25 +2,30 @@
 import React from 'react';
 import { ChurchEvent } from '../types';
 import { MapPin, ArrowRight } from 'lucide-react';
+import { DEFAULT_EVENT_IMAGE } from '../constants';
 
 interface EventCardProps {
   event: ChurchEvent;
-  onClick?: (event: ChurchEvent) => void;
+  onViewDetails?: (event: ChurchEvent) => void;
 }
 
-export const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
+export const EventCard: React.FC<EventCardProps> = ({ event, onViewDetails }) => {
   const eventDate = new Date(event.date);
   const month = eventDate.toLocaleString('default', { month: 'short' }).toUpperCase();
   const day = eventDate.getDate();
 
+  const handleClick = () => {
+    onViewDetails && onViewDetails(event);
+  };
+
   return (
     <div 
-      className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-lg transition-all duration-300 group ${onClick ? 'cursor-pointer' : ''}`}
-      onClick={() => onClick && onClick(event)}
+      className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-lg transition-all duration-300 group ${onViewDetails ? 'cursor-pointer' : ''}`}
+      onClick={handleClick}
     >
       <div className="h-40 relative bg-gray-200 overflow-hidden">
         <img 
-            src={event.imageUrl} 
+            src={event.imageUrl || DEFAULT_EVENT_IMAGE} 
             alt={event.title} 
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
         />
@@ -48,9 +53,17 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
             <span className="truncate">{event.location}</span>
         </div>
         
-        <button className="mt-4 w-full py-2 bg-white border border-gray-300 rounded text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center group-hover:border-slate-400">
-            Event Details <ArrowRight className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
+        {onViewDetails && (
+          <button  
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering the card's onClick
+              handleClick();
+            }} 
+            className="mt-4 w-full py-2 bg-white border border-gray-300 rounded text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center group-hover:border-slate-400"
+          >
+              Event Details <ArrowRight className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        )}
       </div>
     </div>
   );

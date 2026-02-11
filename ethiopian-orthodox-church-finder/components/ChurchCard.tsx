@@ -1,6 +1,7 @@
 import React from 'react';
 import { Church } from '../types';
 import { MapPin, Phone, Users, Calendar, Heart, ArrowRight } from 'lucide-react';
+import { DEFAULT_CHURCH_IMAGE, DEFAULT_CLERGY_IMAGE } from '../constants';
 
 interface ChurchCardProps {
   church: Church;
@@ -14,7 +15,7 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, o
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col md:flex-row">
       <div className="md:w-2/5 h-48 md:h-auto relative bg-gray-200">
         <img 
-          src={church.imageUrl} 
+          src={church.imageUrl || DEFAULT_CHURCH_IMAGE} 
           alt={church.name} 
           className="w-full h-full object-cover"
         />
@@ -48,10 +49,6 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, o
               <Users className="h-4 w-4 mr-2" />
               {church.clergy.length > 0 ? `${church.clergy.length} Clergy Members` : 'Clergy info unavailable'}
             </div>
-            <div className="flex items-center text-gray-600 text-sm">
-              <Calendar className="h-4 w-4 mr-2" />
-              {church.events.length} Upcoming Events
-            </div>
           </div>
 
           {/* Clergy Preview */}
@@ -62,7 +59,7 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, o
                         <img 
                             key={cleric.id}
                             className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
-                            src={cleric.imageUrl}
+                            src={cleric.imageUrl || DEFAULT_CLERGY_IMAGE}
                             alt={cleric.name}
                         />
                     ))}

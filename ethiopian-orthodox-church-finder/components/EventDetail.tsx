@@ -2,6 +2,7 @@
 import React from 'react';
 import { ChurchEvent } from '../types';
 import { MapPin, Calendar, Clock, ArrowLeft, Share2, Navigation } from 'lucide-react';
+import { DEFAULT_EVENT_IMAGE } from '../constants';
 
 interface EventDetailProps {
   event: ChurchEvent;
@@ -19,7 +20,7 @@ export const EventDetail: React.FC<EventDetailProps> = ({ event, onBack, onViewC
       {/* Header Image */}
       <div className="h-64 md:h-96 w-full relative bg-gray-900">
         <img 
-          src={event.imageUrl} 
+          src={event.imageUrl || DEFAULT_EVENT_IMAGE} 
           alt={event.title} 
           className="w-full h-full object-cover opacity-70"
         />
