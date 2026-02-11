@@ -5,7 +5,6 @@ import { EventDetail } from './components/EventDetail';
 import { RegisterChurch } from './components/RegisterChurch';
 import { Login } from './components/Login';
 import { SignUp } from './components/SignUp';
-import { AiAssistant } from './components/AiAssistant';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { ChurchAdminDashboard } from './pages/ChurchAdminDashboard';
 import { ViewState, Church, FilterState, ChurchEvent, EventFilterState, UserProfile } from './types';
@@ -478,8 +477,6 @@ const App: React.FC = () => {
           />
         )}
       </div>
-
-      <AiAssistant />
 
       {showLogin && (
         <Login
