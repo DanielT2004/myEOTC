@@ -44,14 +44,14 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
           Connect with your faith community. Discover churches, meet clergy, attend events, and support through donations.
         </p>
 
-        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto relative flex shadow-lg rounded-lg">
-          <div className="relative flex-grow">
+        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto flex flex-col sm:flex-row shadow-lg rounded-lg overflow-hidden">
+          <div className="relative flex-grow min-w-0">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-4 rounded-l-lg border-gray-300 focus:ring-slate-500 focus:border-slate-500 sm:text-sm md:text-base bg-white"
+              className="block w-full pl-10 pr-3 py-3.5 sm:py-4 rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none border border-gray-300 focus:ring-slate-500 focus:border-slate-500 text-base bg-white min-h-[48px]"
               placeholder="Search by city, zip code, or church name..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -59,7 +59,7 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
           </div>
           <button
             type="submit"
-            className="inline-flex items-center px-6 py-4 border border-transparent text-base font-medium rounded-r-lg shadow-sm text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+            className="inline-flex items-center justify-center px-6 py-3.5 sm:py-4 min-h-[48px] border border-transparent text-base font-medium rounded-b-lg sm:rounded-r-lg sm:rounded-bl-none text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 touch-manipulation"
           >
             Search
           </button>

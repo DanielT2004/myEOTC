@@ -11,14 +11,15 @@ interface NavbarProps {
   onShowLogin: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ 
-  currentView, 
-  onNavigate, 
+export const Navbar: React.FC<NavbarProps> = ({
+  currentView,
+  onNavigate,
   user,
   onUserChange,
-  onShowLogin 
+  onShowLogin
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +32,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (showMobileMenu) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [showMobileMenu]);
 
   const handleSignOut = async () => {
     try {
@@ -46,6 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const handleNavigate = (view: ViewState) => {
     onNavigate(view);
     setShowUserMenu(false);
+    setShowMobileMenu(false);
   };
 
   return (
@@ -63,7 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Ethiopian Orthodox Church Finder
             </span>
             <span className="font-bold text-xl tracking-tight text-slate-900 sm:hidden">
-              EOC Finder
+              EOTC Finder
             </span>
           </div>
           
@@ -195,12 +203,67 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </>
             )}
-            <button className="md:hidden p-2 text-gray-500">
+            <button
+              type="button"
+              aria-label="Open menu"
+              onClick={() => setShowMobileMenu((v) => !v)}
+              className="md:hidden p-2.5 -mr-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
               <Menu size={24} />
             </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {showMobileMenu && (
+        <div className="md:hidden border-t border-gray-100 bg-white">
+          <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
+            <button
+              onClick={() => handleNavigate(ViewState.HOME)}
+              className={`block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] flex items-center ${currentView === ViewState.HOME ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => handleNavigate(ViewState.SEARCH)}
+              className={`block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] flex items-center ${currentView === ViewState.SEARCH ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              Find Churches
+            </button>
+            <button
+              onClick={() => handleNavigate(ViewState.EVENTS)}
+              className={`block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] flex items-center ${currentView === ViewState.EVENTS ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              Events
+            </button>
+            {user?.role === 'super_admin' && (
+              <button
+                onClick={() => handleNavigate(ViewState.ADMIN_DASHBOARD)}
+                className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] text-gray-700 hover:bg-gray-50"
+              >
+                Admin
+              </button>
+            )}
+            {(user?.role === 'church_admin' || user?.role === 'super_admin') && (
+              <button
+                onClick={() => handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD)}
+                className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] text-gray-700 hover:bg-gray-50"
+              >
+                My Dashboard
+              </button>
+            )}
+            {!user && (
+              <button
+                onClick={() => { onShowLogin(); setShowMobileMenu(false); }}
+                className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] text-gray-700 hover:bg-gray-50"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

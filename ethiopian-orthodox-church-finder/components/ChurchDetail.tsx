@@ -30,8 +30,9 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
         />
         <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
           <button 
+            type="button"
             onClick={onBack}
-            className="flex items-center px-4 py-2 bg-white/90 backdrop-blur text-slate-900 rounded-full text-sm font-semibold hover:bg-white transition-colors"
+            className="flex items-center px-4 py-2.5 min-h-[44px] bg-white/90 backdrop-blur text-slate-900 rounded-full text-sm font-semibold hover:bg-white transition-colors touch-manipulation"
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </button>
@@ -49,19 +50,21 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
                 <MapPin className="h-5 w-5 mr-2" /> {church.address}, {church.city}
               </p>
             </div>
-            <div className="mt-4 md:mt-0 flex space-x-3">
+            <div className="mt-4 md:mt-0 flex flex-wrap gap-2 sm:space-x-3 sm:gap-0">
               {isAdmin && onEditChurch && onAddEvent ? (
                 <>
                   <button 
+                    type="button"
                     onClick={onEditChurch}
-                    className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg"
+                    className="flex items-center px-5 py-3 min-h-[44px] bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg touch-manipulation"
                   >
                     <Edit className="h-5 w-5 mr-2" />
                     Edit Church
                   </button>
                   <button 
+                    type="button"
                     onClick={onAddEvent}
-                    className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors shadow-lg"
+                    className="flex items-center px-5 py-3 min-h-[44px] bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors shadow-lg touch-manipulation"
                   >
                     <Plus className="h-5 w-5 mr-2" />
                     Add Event
@@ -70,15 +73,17 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
               ) : (
                 <>
                   <button 
+                    type="button"
                     onClick={() => onToggleFollow(church.id)}
-                    className={`flex items-center px-6 py-3 rounded-lg font-bold transition-colors ${isFollowing ? 'bg-white text-red-500' : 'bg-transparent border border-white text-white hover:bg-white/10'}`}
+                    className={`flex items-center px-5 py-3 min-h-[44px] rounded-lg font-bold transition-colors touch-manipulation ${isFollowing ? 'bg-white text-red-500' : 'bg-transparent border border-white text-white hover:bg-white/10'}`}
                   >
                     <Heart className={`h-5 w-5 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
                     {isFollowing ? 'Following' : 'Follow'}
                   </button>
                   <button 
+                    type="button"
                     onClick={() => setActiveTab('donate')}
-                    className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg"
+                    className="flex items-center px-5 py-3 min-h-[44px] bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg touch-manipulation"
                   >
                     Donate
                   </button>
@@ -89,16 +94,17 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - horizontal scroll on mobile */}
       <div className="border-b border-gray-200 sticky top-16 bg-white z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex overflow-x-auto scrollbar-hide scroll-touch gap-0 sm:space-x-8 sm:gap-0 -mx-4 px-4 sm:mx-0 sm:px-0">
             {['overview', 'clergy', 'events', 'donate'].map((tab) => (
               <button
                 key={tab}
+                type="button"
                 onClick={() => setActiveTab(tab as any)}
                 className={`
-                  whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm uppercase tracking-wide
+                  flex-shrink-0 whitespace-nowrap py-4 px-3 sm:px-1 border-b-2 font-medium text-sm uppercase tracking-wide min-h-[48px] touch-manipulation
                   ${activeTab === tab 
                     ? 'border-slate-900 text-slate-900' 
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}

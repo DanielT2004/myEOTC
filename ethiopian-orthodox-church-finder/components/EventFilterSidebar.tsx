@@ -20,7 +20,7 @@ export const EventFilterSidebar: React.FC<EventFilterSidebarProps> = ({ filters,
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm sticky top-24">
+    <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm md:sticky md:top-24">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Filter Events</h2>
 
       {/* Search by event name, church name, or location */}

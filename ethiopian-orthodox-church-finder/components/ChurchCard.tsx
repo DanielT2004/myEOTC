@@ -13,7 +13,7 @@ interface ChurchCardProps {
 export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, onToggleFollow, isFollowing }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col md:flex-row">
-      <div className="md:w-2/5 h-48 md:h-auto relative bg-gray-200">
+      <div className="md:w-2/5 h-44 sm:h-48 md:h-auto relative bg-gray-200 flex-shrink-0">
         <img 
           src={church.imageUrl || DEFAULT_CHURCH_IMAGE} 
           alt={church.name} 
@@ -29,17 +29,18 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, o
           <div className="flex justify-between items-start mb-2">
             <h3 className="text-xl font-bold text-slate-900 leading-tight">{church.name}</h3>
             <button 
+              type="button"
               onClick={(e) => { e.stopPropagation(); onToggleFollow(church.id); }}
-              className={`p-2 rounded-full ${isFollowing ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+              className={`p-2.5 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center touch-manipulation ${isFollowing ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
             >
               <Heart className={`h-5 w-5 ${isFollowing ? 'fill-current' : ''}`} />
             </button>
           </div>
           
           <div className="space-y-2 mb-4">
-            <div className="flex items-center text-gray-600 text-sm">
-              <MapPin className="h-4 w-4 mr-2" />
-              {church.address}, {church.city}, {church.state} {church.zip}
+            <div className="flex items-start text-gray-600 text-sm break-words">
+              <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+              <span>{church.address}, {church.city}, {church.state} {church.zip}</span>
             </div>
             <div className="flex items-center text-gray-600 text-sm">
               <Phone className="h-4 w-4 mr-2" />
@@ -71,15 +72,17 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, o
           )}
         </div>
 
-        <div className="flex space-x-3 mt-4">
+        <div className="flex gap-2 sm:space-x-3 mt-4">
           <button 
+            type="button"
             onClick={() => onViewDetails(church)}
-            className="flex-1 bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors text-center"
+            className="flex-1 bg-slate-900 text-white px-4 py-3 min-h-[44px] rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors text-center touch-manipulation"
           >
             View Details
           </button>
           <button 
-            className="px-4 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            type="button"
+            className="px-4 py-3 min-h-[44px] min-w-[44px] rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center touch-manipulation"
             title="Directions"
           >
              <ArrowRight className="h-5 w-5" />

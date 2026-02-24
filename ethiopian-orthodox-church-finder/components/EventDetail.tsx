@@ -26,8 +26,9 @@ export const EventDetail: React.FC<EventDetailProps> = ({ event, onBack, onViewC
         />
         <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
           <button 
+            type="button"
             onClick={onBack}
-            className="flex items-center px-4 py-2 bg-white/90 backdrop-blur text-slate-900 rounded-full text-sm font-semibold hover:bg-white transition-colors"
+            className="flex items-center px-4 py-2.5 min-h-[44px] bg-white/90 backdrop-blur text-slate-900 rounded-full text-sm font-semibold hover:bg-white transition-colors touch-manipulation"
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Events
           </button>

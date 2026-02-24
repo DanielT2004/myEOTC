@@ -20,10 +20,13 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onViewDetails }) =>
 
   return (
     <div 
-      className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-lg transition-all duration-300 group ${onViewDetails ? 'cursor-pointer' : ''}`}
+      role={onViewDetails ? 'button' : undefined}
+      tabIndex={onViewDetails ? 0 : undefined}
+      onKeyDown={onViewDetails ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); } : undefined}
+      className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-lg transition-all duration-300 group ${onViewDetails ? 'cursor-pointer active:scale-[0.99]' : ''}`}
       onClick={handleClick}
     >
-      <div className="h-40 relative bg-gray-200 overflow-hidden">
+      <div className="h-36 sm:h-40 relative bg-gray-200 overflow-hidden flex-shrink-0">
         <img 
             src={event.imageUrl || DEFAULT_EVENT_IMAGE} 
             alt={event.title} 
@@ -48,18 +51,19 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onViewDetails }) =>
         <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{event.title}</h3>
         <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-grow">{event.description}</p>
         
-        <div className="flex items-center text-xs text-gray-500 mt-auto pt-4 border-t border-gray-50">
-            <MapPin className="h-3 w-3 mr-1" />
+        <div className="flex items-center text-xs text-gray-500 mt-auto pt-4 border-t border-gray-50 min-w-0">
+            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
             <span className="truncate">{event.location}</span>
         </div>
         
         {onViewDetails && (
           <button  
+            type="button"
             onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering the card's onClick
+              e.stopPropagation();
               handleClick();
             }} 
-            className="mt-4 w-full py-2 bg-white border border-gray-300 rounded text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center group-hover:border-slate-400"
+            className="mt-4 w-full py-3 min-h-[44px] bg-white border border-gray-300 rounded-lg text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center group-hover:border-slate-400 touch-manipulation"
           >
               Event Details <ArrowRight className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>

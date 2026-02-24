@@ -345,7 +345,7 @@ const App: React.FC = () => {
         onShowLogin={() => setShowLogin(true)}
       />
       
-      <div className="flex-grow flex flex-col w-full">
+      <div className="flex-grow flex flex-col w-full min-w-0 overflow-x-hidden">
         {currentView === ViewState.HOME && (
           <Home 
             onNavigate={handleNavigate}
