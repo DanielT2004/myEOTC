@@ -23,6 +23,18 @@ export const EventFilterSidebar: React.FC<EventFilterSidebarProps> = ({ filters,
     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm sticky top-24">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Filter Events</h2>
 
+      {/* Search by event name, church name, or location */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+        <input
+          type="text"
+          value={filters.query}
+          onChange={(e) => setFilters(prev => ({ ...prev, query: e.target.value }))}
+          placeholder="Event name, church, or location"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-slate-500 focus:border-slate-500 sm:text-sm"
+        />
+      </div>
+
       {/* Date Range */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
@@ -71,7 +83,7 @@ export const EventFilterSidebar: React.FC<EventFilterSidebarProps> = ({ filters,
       </div>
 
       <button
-        onClick={() => setFilters({ location: '', types: {}, dateRange: 'upcoming' })}
+        onClick={() => setFilters({ query: '', location: '', types: {}, dateRange: 'upcoming' })}
         className="w-full bg-white border border-gray-300 text-slate-700 px-4 py-2 rounded-md font-medium hover:bg-gray-50 transition-colors"
       >
         Reset Filters

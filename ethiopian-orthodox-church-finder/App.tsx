@@ -10,6 +10,8 @@ import { ChurchAdminDashboard } from './pages/ChurchAdminDashboard';
 import { ViewState, Church, FilterState, ChurchEvent, EventFilterState, UserProfile } from './types';
 import { churchService } from './services/churchService';
 import { eventService } from './services/eventService';
+import { calculateDistance } from './utils/distance';
+import { filterChurches, filterEvents } from './utils/searchFilters';
 import { authService } from './services/authService';
 import { followService } from './services/followService';
 
@@ -45,6 +47,7 @@ const App: React.FC = () => {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
+    churchName: '',
     location: '',
     distance: 25,
     services: {}
@@ -52,6 +55,7 @@ const App: React.FC = () => {
   
   // Event Filter State
   const [eventFilters, setEventFilters] = useState<EventFilterState>({
+    query: '',
     location: '',
     types: {},
     dateRange: 'upcoming'
@@ -159,19 +163,6 @@ const App: React.FC = () => {
 
     loadEvents();
   }, []);
-
-  // Calculate distance between two coords
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 3958.8; // Radius of the earth in miles
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
   // Get User Location on Mount
   useEffect(() => {
@@ -320,50 +311,17 @@ const App: React.FC = () => {
     return 0; 
   });
 
-  // Church Filter Logic
-  const filteredChurches = sortedChurches.filter(church => {
-    const matchesQuery = searchQuery === '' || 
-      church.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      church.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      church.zip.includes(searchQuery);
-
-    const matchesLocation = filters.location === '' || 
-      church.city.toLowerCase().includes(filters.location.toLowerCase()) ||
-      church.zip.includes(filters.location);
-    
-    // Distance filter
-    const matchesDistance = !userLocation || !church.distance || church.distance <= filters.distance;
-
-    const activeServices = Object.keys(filters.services).filter(k => filters.services[k]);
-    const matchesServices = activeServices.length === 0 || 
-      activeServices.some(s => church.services.includes(s));
-
-    return matchesQuery && matchesLocation && matchesServices && matchesDistance;
+  // Church Filter Logic (search by name, city, address, zip + location/distance/services)
+  const filteredChurches = filterChurches(sortedChurches, {
+    searchQuery,
+    filters,
+    userLocation,
   });
 
-  // Event Filter Logic
-  const filteredEvents = events.filter(event => {
-    const matchesLocation = eventFilters.location === '' || 
-      event.location.toLowerCase().includes(eventFilters.location.toLowerCase());
-
-    const activeTypes = Object.keys(eventFilters.types).filter(k => eventFilters.types[k]);
-    const matchesType = activeTypes.length === 0 || activeTypes.includes(event.type);
-    
-    // Simple date logic
-    const eventDate = new Date(event.date);
-    const now = new Date();
-    let matchesDate = true;
-    if (eventFilters.dateRange === 'thisWeek') {
-      const nextWeek = new Date();
-      nextWeek.setDate(now.getDate() + 7);
-      matchesDate = eventDate >= now && eventDate <= nextWeek;
-    } else if (eventFilters.dateRange === 'thisMonth') {
-      const nextMonth = new Date();
-      nextMonth.setDate(now.getDate() + 30);
-      matchesDate = eventDate >= now && eventDate <= nextMonth;
-    }
-
-    return matchesLocation && matchesType && matchesDate;
+  // Event Filter Logic (search by event title, church name, location + filters)
+  const filteredEvents = filterEvents(events, {
+    searchQuery: eventFilters.query,
+    filters: eventFilters,
   });
 
   if (loadingUser) {
@@ -504,7 +462,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <p className="text-gray-500 text-sm">
-              &copy; 2024 Ethiopian Orthodox Church Finder. All rights reserved.
+              &copy; 2026 Ethiopian Orthodox Church Finder. All rights reserved.
             </p>
             <div className="flex space-x-6">
               <a href="#" className="text-gray-400 hover:text-gray-500">Privacy Policy</a>

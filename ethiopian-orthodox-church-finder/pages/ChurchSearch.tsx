@@ -102,7 +102,7 @@ export const ChurchSearch: React.FC<ChurchSearchProps> = ({
                         <div className="text-center py-20 bg-white rounded-lg border border-gray-200">
                             <p className="text-gray-500 text-lg">No churches found matching your criteria.</p>
                             <button 
-                                onClick={() => { setSearchQuery(''); setFilters(prev => ({...prev, location: '', services: {}})); }}
+                                onClick={() => { setSearchQuery(''); setFilters(prev => ({ ...prev, churchName: '', location: '', services: {} })); }}
                                 className="mt-4 text-blue-600 font-medium hover:underline"
                             >
                                 Clear all filters

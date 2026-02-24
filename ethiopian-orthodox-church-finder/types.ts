@@ -89,12 +89,14 @@ export interface Church {
 }
 
 export interface FilterState {
+  churchName: string;
   location: string;
   distance: number;
   services: Record<string, boolean>;
 }
 
 export interface EventFilterState {
+  query: string; // search by event title, church name, or event location
   location: string;
   types: Record<string, boolean>;
   dateRange: 'upcoming' | 'thisMonth' | 'thisWeek';

@@ -40,7 +40,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({
                         <div className="col-span-full text-center py-20 bg-white rounded-lg border border-gray-200">
                             <p className="text-gray-500 text-lg">No events found matching your filters.</p>
                             <button 
-                                onClick={() => setFilters({location: '', types: {}, dateRange: 'upcoming'})}
+                                onClick={() => setFilters({ query: '', location: '', types: {}, dateRange: 'upcoming' })}
                                 className="mt-4 text-blue-600 font-medium hover:underline"
                             >
                                 Clear filters
