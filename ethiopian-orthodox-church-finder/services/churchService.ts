@@ -311,6 +311,12 @@ export const churchService = {
 
     console.log('[ChurchService] Church admin relationship created successfully');
 
+    // Add admin as first subscriber so the church always has at least one recipient for notifications
+    const { subscribeToChurch } = await import('./subscribeService');
+    subscribeToChurch(authUser.email ?? '', data.id).catch((err) =>
+      console.warn('[ChurchService] Failed to add admin as first subscriber:', err)
+    );
+
     // Update user role to church_admin
     console.log('[ChurchService] Updating user role to church_admin:', userId);
 

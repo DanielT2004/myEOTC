@@ -1,16 +1,18 @@
 
 import React from 'react';
 import { ChurchEvent } from '../types';
-import { MapPin, Calendar, Clock, ArrowLeft, Share2, Navigation } from 'lucide-react';
+import { MapPin, Calendar, Clock, ArrowLeft, Share2, Navigation, Trash2 } from 'lucide-react';
 import { DEFAULT_EVENT_IMAGE } from '../constants';
 
 interface EventDetailProps {
   event: ChurchEvent;
   onBack: () => void;
   onViewChurch: (churchId: string) => void;
+  isAdmin?: boolean;
+  onDeleteEvent?: (eventId: string) => void;
 }
 
-export const EventDetail: React.FC<EventDetailProps> = ({ event, onBack, onViewChurch }) => {
+export const EventDetail: React.FC<EventDetailProps> = ({ event, onBack, onViewChurch, isAdmin, onDeleteEvent }) => {
   const dateObj = new Date(event.date);
   const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -106,6 +108,18 @@ export const EventDetail: React.FC<EventDetailProps> = ({ event, onBack, onViewC
                         <button className="w-full bg-white border border-gray-300 text-slate-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
                             <Share2 className="h-4 w-4 mr-2" /> Share Event
                         </button>
+                        {isAdmin && onDeleteEvent && (
+                          <>
+                            <hr className="border-slate-200 my-4" />
+                            <button
+                              type="button"
+                              onClick={() => onDeleteEvent(event.id)}
+                              className="w-full bg-red-50 border border-red-200 text-red-700 font-bold py-3 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete event
+                            </button>
+                          </>
+                        )}
                     </div>
                 </div>
             </div>

@@ -103,13 +103,12 @@ export const ChurchSearch: React.FC<ChurchSearchProps> = ({
                 <div className="grid grid-cols-1 gap-4 sm:gap-6 pb-6 sm:pb-8">
                     {churches.length > 0 ? (
                         churches.map(church => (
+                            <div key={church.id} className="min-w-0">
                             <ChurchCard 
-                                key={church.id} 
                                 church={church} 
                                 onViewDetails={onViewDetails}
-                                onToggleFollow={onToggleFollow}
-                                isFollowing={followedChurches.has(church.id)}
                             />
+                            </div>
                         ))
                     ) : (
                         <div className="text-center py-20 bg-white rounded-lg border border-gray-200">

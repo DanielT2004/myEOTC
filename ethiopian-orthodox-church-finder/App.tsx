@@ -12,6 +12,7 @@ import { churchService } from './services/churchService';
 import { eventService } from './services/eventService';
 import { calculateDistance } from './utils/distance';
 import { filterChurches, filterEvents } from './utils/searchFilters';
+import { canViewChurchDetail } from './utils/churchVisibility';
 import { authService } from './services/authService';
 import { followService } from './services/followService';
 
@@ -21,7 +22,6 @@ import { ChurchSearch } from './pages/ChurchSearch';
 import { EventsPage } from './pages/EventsPage';
 
 const App: React.FC = () => {
-  console.log('App component rendering...');
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
@@ -33,6 +33,7 @@ const App: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<ChurchEvent | null>(null);
   const [followedChurches, setFollowedChurches] = useState<Set<string>>(new Set());
   const [isAdminOfSelectedChurch, setIsAdminOfSelectedChurch] = useState(false);
+  const [isAdminOfEventChurch, setIsAdminOfEventChurch] = useState(false);
   const [showEventFormOnAdminDashboard, setShowEventFormOnAdminDashboard] = useState(false);
   
   // Data State
@@ -224,10 +225,36 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
-  const handleViewEventDetails = (event: ChurchEvent) => {
+  const handleViewEventDetails = async (event: ChurchEvent) => {
     setSelectedEvent(event);
+    if (user && event.churchId) {
+      try {
+        const isAdmin = await churchService.isUserAdminOfChurch(user.id, event.churchId);
+        setIsAdminOfEventChurch(isAdmin);
+      } catch {
+        setIsAdminOfEventChurch(false);
+      }
+    } else {
+      setIsAdminOfEventChurch(false);
+    }
     setCurrentView(ViewState.EVENT_DETAIL);
     window.scrollTo(0, 0);
+  };
+
+  const handleDeleteEventFromDetail = async (eventId: string) => {
+    if (!selectedEvent) return;
+    if (!window.confirm('Are you sure you want to delete this event? This cannot be undone.')) return;
+    try {
+      await eventService.deleteEvent(eventId);
+      setEvents(prev => prev.filter(e => e.id !== eventId));
+      if (selectedChurch && selectedChurch.id === selectedEvent.churchId) {
+        setSelectedChurch(prev => prev ? { ...prev, events: prev.events.filter(e => e.id !== eventId) } : null);
+      }
+      setSelectedEvent(null);
+      handleNavigate(ViewState.EVENTS);
+    } catch (err) {
+      console.error('Error deleting event:', err);
+    }
   };
 
   const handleViewChurchFromEvent = async (churchId: string) => {
@@ -255,6 +282,21 @@ const App: React.FC = () => {
       setShowEventFormOnAdminDashboard(true);
       setCurrentView(ViewState.CHURCH_ADMIN_DASHBOARD);
       window.scrollTo(0, 0);
+    }
+  };
+
+  const handleGoToMyDashboard = async () => {
+    if (!user) return;
+    try {
+      const churches = await churchService.getChurchesForAdmin(user.id);
+      if (churches.length > 0) {
+        await handleViewDetails(churches[0]);
+      } else {
+        handleNavigate(ViewState.NO_CHURCH_PROMPT);
+      }
+    } catch (e) {
+      console.error('Error loading your church:', e);
+      handleNavigate(ViewState.HOME);
     }
   };
 
@@ -343,9 +385,10 @@ const App: React.FC = () => {
         user={user}
         onUserChange={handleAuthSuccess}
         onShowLogin={() => setShowLogin(true)}
+        onGoToMyDashboard={handleGoToMyDashboard}
       />
       
-      <div className="flex-grow flex flex-col w-full min-w-0 overflow-x-hidden">
+      <div className="flex-grow flex flex-col w-full min-w-0">
         {currentView === ViewState.HOME && (
           <Home 
             onNavigate={handleNavigate}
@@ -354,8 +397,8 @@ const App: React.FC = () => {
             onViewEventDetails={handleViewEventDetails}
             onToggleFollow={handleToggleFollow}
             followedChurches={followedChurches}
-            churches={loadingChurches ? [] : filteredChurches.slice(0, 6)}
-            events={loadingEvents ? [] : filteredEvents.slice(0, 6)}
+            churches={loadingChurches ? [] : filteredChurches}
+            events={loadingEvents ? [] : filteredEvents}
           />
         )}
 
@@ -373,16 +416,36 @@ const App: React.FC = () => {
         )}
 
         {currentView === ViewState.CHURCH_DETAIL && selectedChurch && (
-          <ChurchDetail 
-            church={selectedChurch} 
-            onBack={() => handleNavigate(ViewState.SEARCH)} 
-            onToggleFollow={handleToggleFollow}
-            isFollowing={followedChurches.has(selectedChurch.id)}
-            onViewEventDetails={handleViewEventDetails}
-            isAdmin={isAdminOfSelectedChurch}
-            onEditChurch={isAdminOfSelectedChurch ? handleEditChurch : undefined}
-            onAddEvent={isAdminOfSelectedChurch ? handleAddEvent : undefined}
-          />
+          !canViewChurchDetail(selectedChurch, isAdminOfSelectedChurch)
+            ? (
+                <main className="max-w-2xl mx-auto py-20 px-4 text-center">
+                  <p className="text-gray-600 mb-6">This church is not available yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedChurch(null); handleNavigate(ViewState.SEARCH); }}
+                    className="bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800"
+                  >
+                    Back to search
+                  </button>
+                </main>
+              )
+            : (
+                <ChurchDetail 
+                  church={selectedChurch} 
+                  onBack={() => handleNavigate(ViewState.SEARCH)} 
+                  onToggleFollow={handleToggleFollow}
+                  isFollowing={followedChurches.has(selectedChurch.id)}
+                  onViewEventDetails={handleViewEventDetails}
+                  isAdmin={isAdminOfSelectedChurch}
+                  onEditChurch={isAdminOfSelectedChurch ? handleEditChurch : undefined}
+                  onAddEvent={isAdminOfSelectedChurch ? handleAddEvent : undefined}
+                  onEventUpdated={async () => {
+                    if (!selectedChurch) return;
+                    const churchEvents = await eventService.getEventsForChurch(selectedChurch.id);
+                    setSelectedChurch(prev => prev ? { ...prev, events: churchEvents } : null);
+                  }}
+                />
+              )
         )}
 
         {currentView === ViewState.EVENTS && (
@@ -399,13 +462,50 @@ const App: React.FC = () => {
             event={selectedEvent}
             onBack={() => handleNavigate(ViewState.EVENTS)}
             onViewChurch={handleViewChurchFromEvent}
+            isAdmin={isAdminOfEventChurch}
+            onDeleteEvent={handleDeleteEventFromDetail}
           />
+        )}
+
+        {currentView === ViewState.NO_CHURCH_PROMPT && (
+          <main className="max-w-2xl mx-auto py-20 px-4 sm:px-6 lg:px-8 text-center">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 sm:p-10">
+              <h2 className="text-2xl font-bold text-slate-900 mb-3">Please register a church</h2>
+              <p className="text-gray-600 mb-4">
+                You don&apos;t have a church linked to your account yet. Register your church to manage its listing and events.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleNavigate(ViewState.REGISTER_CHURCH)}
+                className="text-slate-900 font-semibold underline hover:no-underline mb-8 inline-block"
+              >
+                Register a church
+              </button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  type="button"
+                  onClick={() => handleNavigate(ViewState.REGISTER_CHURCH)}
+                  className="bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800"
+                >
+                  Register a church
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNavigate(ViewState.HOME)}
+                  className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Back to home
+                </button>
+              </div>
+            </div>
+          </main>
         )}
 
         {currentView === ViewState.REGISTER_CHURCH && (
           <RegisterChurch 
             onCancel={() => handleNavigate(ViewState.HOME)}
             onSuccess={handleAuthSuccess}
+            onGoToMyChurch={handleGoToMyDashboard}
           />
         )}
 

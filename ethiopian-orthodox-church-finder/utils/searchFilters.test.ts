@@ -363,9 +363,19 @@ describe('eventMatchesDateRange', () => {
     expect(eventMatchesDateRange(event, 'thisWeek')).toBe(false);
   });
 
+  it('returns false for thisWeek when event is in the past', () => {
+    const event = makeEvent({ date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() });
+    expect(eventMatchesDateRange(event, 'thisWeek')).toBe(false);
+  });
+
   it('returns true for thisMonth when event is within next 30 days', () => {
     const event = makeEvent({ date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString() });
     expect(eventMatchesDateRange(event, 'thisMonth')).toBe(true);
+  });
+
+  it('returns false for thisMonth when event is in the past', () => {
+    const event = makeEvent({ date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() });
+    expect(eventMatchesDateRange(event, 'thisMonth')).toBe(false);
   });
 });
 

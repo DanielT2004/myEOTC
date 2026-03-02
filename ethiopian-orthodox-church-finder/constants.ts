@@ -56,7 +56,8 @@ export const EVENT_TYPES = [
   "Bible Study",
   "Community",
   "Worship",
-  "Fundraiser"
+  "Fundraiser",
+  "Funeral"
 ];
 
 // Default images for churches and events

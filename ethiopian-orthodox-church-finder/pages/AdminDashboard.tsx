@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { churchService } from '../services/churchService';
+import { getStatusUpdateAction } from '../utils/adminDashboardUtils';
 import { Church, ChurchStatus } from '../types';
 
 interface AdminDashboardProps {
@@ -11,7 +12,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [churches, setChurches] = useState<Church[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('pending');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,10 +40,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleStatusUpdate = async (churchId: string, status: ChurchStatus) => {
     setProcessingId(churchId);
     try {
-      await churchService.updateChurchStatus(churchId, status);
+      const action = getStatusUpdateAction(status);
+      if (action === 'delete') {
+        await churchService.deleteChurch(churchId);
+      } else {
+        await churchService.updateChurchStatus(churchId, status);
+      }
       await loadChurches();
     } catch (err: any) {
-      setError(err.message || 'Failed to update church status');
+      setError(err.message || (status === 'rejected' ? 'Failed to reject and remove church' : 'Failed to update church status'));
     } finally {
       setProcessingId(null);
     }
@@ -74,7 +80,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
       {/* Filter Tabs */}
       <div className="mb-6 flex space-x-2 border-b border-gray-200">
-        {(['all', 'pending', 'approved', 'rejected'] as const).map((f) => (
+        {(['all', 'pending', 'approved'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -117,8 +123,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                       className={`px-2 py-1 text-xs font-medium rounded ${
                         church.status === 'approved'
                           ? 'bg-green-100 text-green-700'
-                          : church.status === 'rejected'
-                          ? 'bg-red-100 text-red-700'
                           : 'bg-yellow-100 text-yellow-700'
                       }`}
                     >

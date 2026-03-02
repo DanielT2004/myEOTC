@@ -9,6 +9,8 @@ interface NavbarProps {
   user: UserProfile | null;
   onUserChange: () => void;
   onShowLogin: () => void;
+  /** When provided, "My Dashboard" goes to the user's church profile instead of admin dashboard */
+  onGoToMyDashboard?: () => void | Promise<void>;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,7 +18,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   user,
   onUserChange,
-  onShowLogin
+  onShowLogin,
+  onGoToMyDashboard
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -104,10 +107,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
             {(user?.role === 'church_admin' || user?.role === 'super_admin') && (
               <button 
-                onClick={() => handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD)}
-                className={`${currentView === ViewState.CHURCH_ADMIN_DASHBOARD ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                onClick={() => onGoToMyDashboard ? onGoToMyDashboard() : handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD)}
+                className={`${currentView === ViewState.CHURCH_DETAIL || currentView === ViewState.NO_CHURCH_PROMPT ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
               >
-                My Dashboard
+                My Church
               </button>
             )}
           </div>
@@ -155,11 +158,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </button>
                       {(user.role === 'church_admin' || user.role === 'super_admin') && (
                         <button
-                          onClick={() => handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD)}
+                          onClick={() => { onGoToMyDashboard ? onGoToMyDashboard() : handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD); setShowUserMenu(false); }}
                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                         >
                           <Settings size={16} />
-                          My Dashboard
+                          My Church
                         </button>
                       )}
                       {user.role === 'super_admin' && (
@@ -247,10 +250,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
             {(user?.role === 'church_admin' || user?.role === 'super_admin') && (
               <button
-                onClick={() => handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD)}
+                onClick={() => onGoToMyDashboard ? onGoToMyDashboard() : handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD)}
                 className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] text-gray-700 hover:bg-gray-50"
               >
-                My Dashboard
+                My Church
               </button>
             )}
             {!user && (

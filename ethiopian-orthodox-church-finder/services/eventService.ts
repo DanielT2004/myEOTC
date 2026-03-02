@@ -1,6 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { ChurchEvent } from '../types';
 
+/** ISO string for "now" (start of current moment) for filtering upcoming events. */
+const nowISO = () => new Date().toISOString();
+
 // Transform database event to app event format
 const transformEvent = (dbEvent: any, churchName?: string): ChurchEvent => {
   return {
@@ -13,7 +16,7 @@ const transformEvent = (dbEvent: any, churchName?: string): ChurchEvent => {
     imageUrl: dbEvent.image_url || '',
     churchId: dbEvent.church_id,
     churchName: churchName || dbEvent.church_name,
-    // Add created_at and updated_at if needed
+    notificationSentAt: dbEvent.notification_sent_at ?? null,
   };
 };
 
@@ -30,8 +33,18 @@ const transformEventForDb = (event: Partial<ChurchEvent>): any => {
   };
 };
 
+/** Get church name from a Supabase event row (join can be object, array, or under "church" key). */
+function getChurchNameFromRow(row: any): string | undefined {
+  if (!row) return undefined;
+  const c = row.churches ?? row.church;
+  if (!c) return undefined;
+  if (typeof c === 'object' && c !== null && 'name' in c) return (c as { name?: string }).name;
+  if (Array.isArray(c) && c[0]?.name) return c[0].name;
+  return undefined;
+}
+
 export const eventService = {
-  // Get all events for approved churches (public)
+  // Get all events for approved churches (public) — only upcoming (date >= now)
   async getAllEvents(): Promise<ChurchEvent[]> {
     try {
       const { data, error } = await supabase
@@ -44,6 +57,7 @@ export const eventService = {
           )
         `)
         .eq('churches.status', 'approved')
+        .gte('date', nowISO())
         .order('date', { ascending: true });
 
       if (error) {
@@ -64,7 +78,7 @@ export const eventService = {
     }
   },
 
-  // Get events for a specific church
+  // Get events for a specific church (all events — split into upcoming/previous in UI)
   async getEventsForChurch(churchId: string): Promise<ChurchEvent[]> {
     const { data, error } = await supabase
       .from('events')
@@ -126,6 +140,10 @@ export const eventService = {
   // Create event
   async createEvent(event: Partial<ChurchEvent>): Promise<ChurchEvent> {
     if (!event.churchId) throw new Error('churchId is required');
+    const eventDate = event.date ? new Date(event.date) : null;
+    if (eventDate && eventDate.getTime() < Date.now()) {
+      throw new Error('Event date and time must be in the future.');
+    }
 
     console.log('[eventService] createEvent called with:', {
       title: event.title,
@@ -159,13 +177,19 @@ export const eventService = {
     }
     
     console.log('[eventService] Event created successfully:', data);
-    const transformed = transformEvent(data, data.churches?.name);
+    const churchName = getChurchNameFromRow(data);
+    const transformed = transformEvent(data, churchName);
     console.log('[eventService] Transformed created event:', transformed);
+
     return transformed;
   },
 
   // Update event
   async updateEvent(id: string, updates: Partial<ChurchEvent>): Promise<ChurchEvent> {
+    if (updates.date) {
+      const d = new Date(updates.date);
+      if (d.getTime() < Date.now()) throw new Error('Event date and time must be in the future.');
+    }
     const eventData = transformEventForDb(updates);
     delete eventData.church_id; // Don't allow church_id updates
 
@@ -191,6 +215,16 @@ export const eventService = {
       .from('events')
       .delete()
       .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  /** Mark an event as notified (sets notification_sent_at). Call after sending the member email. */
+  async markEventNotificationSent(eventId: string): Promise<void> {
+    const { error } = await supabase
+      .from('events')
+      .update({ notification_sent_at: new Date().toISOString() })
+      .eq('id', eventId);
 
     if (error) throw error;
   },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Plus, Trash2, X, Save, Loader2, AlertCircle, Calendar, Eye } from 'lucide-react';
+import { Edit, Plus, Trash2, X, Save, Loader2, AlertCircle, Calendar, Eye, Bell } from 'lucide-react';
 import { churchService } from '../services/churchService';
 import { eventService } from '../services/eventService';
 import { authService } from '../services/authService';
@@ -9,6 +9,9 @@ import { Church, ChurchEvent } from '../types';
 import { EVENT_TYPES } from '../constants';
 import { ChurchFormFields, ChurchFormData } from '../components/ChurchFormFields';
 import { churchToFormData, formDataToChurch } from '../utils/churchFormUtils';
+import { canShowEventsSectionInAdminDashboard } from '../utils/churchVisibility';
+import { NotifyMembersConfirmModal } from '../components/NotifyMembersConfirmModal';
+import { sendEventNotificationEmail } from '../services/courierService';
 
 interface ChurchAdminDashboardProps {
   onBack: () => void;
@@ -43,6 +46,12 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
     description: '',
     imageUrl: '',
   });
+  const [eventImage, setEventImage] = useState<File | null>(null);
+  const [eventImagePreview, setEventImagePreview] = useState<string>('');
+  const [showCreateSuccessModal, setShowCreateSuccessModal] = useState(false);
+  const [createdEvent, setCreatedEvent] = useState<ChurchEvent | null>(null);
+  const [showNotifyConfirmModal, setShowNotifyConfirmModal] = useState(false);
+  const [eventForNotify, setEventForNotify] = useState<ChurchEvent | null>(null);
 
   useEffect(() => {
     loadData();
@@ -81,6 +90,8 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
             churchId: churchToSelect.id,
           });
           setEditingEvent(null);
+          setEventImage(null);
+          setEventImagePreview('');
           setShowEventForm(true);
         } else if (initialChurchId) {
           // If initialChurchId is provided and we're not showing event form, start edit mode
@@ -308,27 +319,78 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
       churchId: selectedChurch?.id,
     });
     setEditingEvent(null);
+    setEventImage(null);
+    setEventImagePreview('');
     setShowEventForm(true);
   };
 
   const handleStartEditEvent = (event: ChurchEvent) => {
     setEventForm({ ...event });
     setEditingEvent(event);
+    setEventImage(null);
+    setEventImagePreview(event.imageUrl || '');
     setShowEventForm(true);
   };
 
   const handleSaveEvent = async () => {
     if (!selectedChurch) return;
 
+    // Required fields validation
+    const title = (eventForm.title ?? '').trim();
+    const type = (eventForm.type ?? '').trim();
+    const description = (eventForm.description ?? '').trim();
+    const date = eventForm.date ?? '';
+
+    if (!title) {
+      setError('Event title is required.');
+      return;
+    }
+    if (!type) {
+      setError('Event type is required.');
+      return;
+    }
+    if (!description) {
+      setError('Event description is required.');
+      return;
+    }
+    if (!date) {
+      setError('Date and time are required.');
+      return;
+    }
+
+    const eventDate = new Date(date);
+    if (eventDate.getTime() < Date.now()) {
+      setError('Event date and time must be in the future.');
+      return;
+    }
+
     setLoading(true);
+    setError('');
     try {
       if (editingEvent) {
-        await eventService.updateEvent(editingEvent.id, eventForm);
+        let imageUrl = eventForm.imageUrl ?? editingEvent.imageUrl ?? '';
+        if (eventImage) {
+          imageUrl = await storageService.uploadEventImage(eventImage, editingEvent.id);
+        }
+        await eventService.updateEvent(editingEvent.id, { ...eventForm, imageUrl });
       } else {
-        await eventService.createEvent({
+        const created = await eventService.createEvent({
           ...eventForm,
+          title,
+          type,
+          description,
+          date,
           churchId: selectedChurch.id,
+          imageUrl: '',
         });
+        let eventToShow = created;
+        if (eventImage && created?.id) {
+          const imageUrl = await storageService.uploadEventImage(eventImage, created.id);
+          await eventService.updateEvent(created.id, { imageUrl });
+          eventToShow = { ...created, imageUrl };
+        }
+        setCreatedEvent(eventToShow ?? null);
+        setShowCreateSuccessModal(true);
       }
       await loadEvents(selectedChurch.id);
       setShowEventForm(false);
@@ -341,6 +403,8 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
         description: '',
         imageUrl: '',
       });
+      setEventImage(null);
+      setEventImagePreview('');
     } catch (err: any) {
       setError(err.message || 'Failed to save event');
     } finally {
@@ -453,7 +517,7 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                     {selectedChurch.address}, {selectedChurch.city}, {selectedChurch.state} {selectedChurch.zip}
                   </p>
                 </div>
-                {!editingChurch && selectedChurch.status === 'approved' && (
+                {!editingChurch && canShowEventsSectionInAdminDashboard(selectedChurch) && (
                   <div className="flex gap-2">
                     {onViewProfile && (
                       <button
@@ -532,7 +596,7 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                   )}
 
                   {/* Events Section */}
-                  {selectedChurch.status === 'approved' && (
+                  {canShowEventsSectionInAdminDashboard(selectedChurch) && (
                     <div className="mt-8">
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-xl font-semibold text-slate-900">Events</h3>
@@ -580,11 +644,19 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Date & Time *</label>
                                 <input
                                   type="datetime-local"
-                                  value={eventForm.date ? new Date(eventForm.date).toISOString().slice(0, 16) : ''}
+                                  min={(() => {
+                                    const n = new Date();
+                                    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}T${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+                                  })()}
+                                  value={eventForm.date ? (() => {
+                                    const d = new Date(eventForm.date);
+                                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                                  })() : ''}
                                   onChange={(e) => setEventForm({ ...eventForm, date: new Date(e.target.value).toISOString() })}
                                   required
                                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                 />
+                                <p className="text-xs text-gray-500 mt-1">Only future dates are allowed.</p>
                               </div>
                             </div>
                             <div>
@@ -608,14 +680,33 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
                               <input
-                                type="url"
-                                value={eventForm.imageUrl || ''}
-                                onChange={(e) => setEventForm({ ...eventForm, imageUrl: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                placeholder="https://..."
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setEventImage(file);
+                                    setEventImagePreview(URL.createObjectURL(file));
+                                  } else {
+                                    setEventImage(null);
+                                    setEventImagePreview(editingEvent?.imageUrl ?? '');
+                                  }
+                                  e.target.value = '';
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700"
                               />
+                              {eventImagePreview && (
+                                <div className="mt-2">
+                                  <img
+                                    src={eventImagePreview}
+                                    alt="Event preview"
+                                    className="h-24 w-auto rounded border border-gray-200 object-cover"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">{eventImage?.name ?? 'Current image'}</p>
+                                </div>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <button
@@ -638,6 +729,8 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                                     description: '',
                                     imageUrl: '',
                                   });
+                                  setEventImage(null);
+                                  setEventImagePreview('');
                                 }}
                                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 flex items-center gap-2"
                               >
@@ -653,41 +746,65 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                         <p className="text-gray-500 text-center py-8">No events yet. Add your first event!</p>
                       ) : (
                         <div className="space-y-4">
-                          {events.map((event) => (
-                            <div
-                              key={event.id}
-                              className="p-4 border border-gray-200 rounded-lg flex justify-between items-start"
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Calendar size={16} className="text-gray-400" />
-                                  <h4 className="font-semibold text-slate-900">{event.title}</h4>
-                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
-                                    {event.type}
-                                  </span>
+                          {events.map((event) => {
+                            const isUpcoming = new Date(event.date) >= new Date();
+                            return (
+                              <div
+                                key={event.id}
+                                className="p-4 border border-gray-200 rounded-lg flex justify-between items-start"
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Calendar size={16} className="text-gray-400" />
+                                    <h4 className="font-semibold text-slate-900">{event.title}</h4>
+                                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                                      {event.type}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-1">
+                                    {new Date(event.date).toLocaleString()}
+                                  </p>
+                                  <p className="text-sm text-gray-600 mb-2">{event.location}</p>
+                                  <p className="text-sm text-gray-700">{event.description}</p>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-1">
-                                  {new Date(event.date).toLocaleString()}
-                                </p>
-                                <p className="text-sm text-gray-600 mb-2">{event.location}</p>
-                                <p className="text-sm text-gray-700">{event.description}</p>
+                                <div className="flex gap-2 ml-4">
+                                  {isUpcoming && (
+                                    event.notificationSentAt ? (
+                                      <span
+                                        className="p-2 text-gray-400 rounded cursor-not-allowed"
+                                        title={`Notified ${new Date(event.notificationSentAt).toLocaleString()}`}
+                                      >
+                                        <Bell size={16} />
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          setEventForNotify(event);
+                                          setShowNotifyConfirmModal(true);
+                                        }}
+                                        className="p-2 text-green-600 hover:bg-green-50 rounded"
+                                        title="Notify members"
+                                      >
+                                        <Bell size={16} />
+                                      </button>
+                                    )
+                                  )}
+                                  <button
+                                    onClick={() => handleStartEditEvent(event)}
+                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteEvent(event.id)}
+                                    className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex gap-2 ml-4">
-                                <button
-                                  onClick={() => handleStartEditEvent(event)}
-                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteEvent(event.id)}
-                                  className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -698,6 +815,58 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
           )}
         </div>
       </div>
+
+      {/* Success modal after creating event */}
+      {showCreateSuccessModal && createdEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" aria-modal="true" role="dialog">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Successfully created event</h3>
+            <p className="text-gray-600 mb-6">Please notify members.</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateSuccessModal(false);
+                  setEventForNotify(createdEvent);
+                  setShowNotifyConfirmModal(true);
+                  setCreatedEvent(null);
+                }}
+                className="flex-1 py-3 px-4 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
+              >
+                Notify members
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateSuccessModal(false);
+                  setCreatedEvent(null);
+                }}
+                className="py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm & send email modal */}
+      {showNotifyConfirmModal && eventForNotify && selectedChurch && (
+        <NotifyMembersConfirmModal
+          event={eventForNotify}
+          churchName={selectedChurch.name}
+          churchId={selectedChurch.id}
+          onSend={async (subscribers) => {
+            await sendEventNotificationEmail(eventForNotify, selectedChurch.name, subscribers);
+            await eventService.markEventNotificationSent(eventForNotify.id);
+            await loadEvents(selectedChurch.id);
+          }}
+          onClose={() => {
+            setShowNotifyConfirmModal(false);
+            setEventForNotify(null);
+          }}
+        />
+      )}
     </div>
   );
 };

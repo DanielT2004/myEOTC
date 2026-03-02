@@ -73,6 +73,7 @@ CREATE TABLE public.events (
   location TEXT NOT NULL,
   description TEXT NOT NULL,
   image_url TEXT,
+  notification_sent_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -156,6 +157,16 @@ CREATE POLICY "Church admins can update their own churches"
 
 CREATE POLICY "Super admins can update any church"
   ON public.churches FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'super_admin'
+    )
+  );
+
+CREATE POLICY "Super admins can delete churches"
+  ON public.churches FOR DELETE
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles

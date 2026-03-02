@@ -1,8 +1,12 @@
 
 import React, { useState } from 'react';
 import { Church, ChurchEvent } from '../types';
-import { MapPin, Phone, ArrowLeft, Heart, CheckCircle, CreditCard, Calendar, Clock, Globe, Info, Accessibility, Car, BookOpen, Edit, Plus } from 'lucide-react';
+import { MapPin, Phone, ArrowLeft, Heart, CheckCircle, CreditCard, Calendar, Clock, Globe, Info, Accessibility, Car, BookOpen, Edit, Plus, AlertCircle, Bell } from 'lucide-react';
 import { EventCard } from './EventCard';
+import { NotifyMembersConfirmModal } from './NotifyMembersConfirmModal';
+import { SubscribeModal } from './SubscribeModal';
+import { sendEventNotificationEmail } from '../services/courierService';
+import { eventService } from '../services/eventService';
 import { DEFAULT_CHURCH_IMAGE, DEFAULT_CLERGY_IMAGE } from '../constants';
 
 interface ChurchDetailProps {
@@ -14,10 +18,14 @@ interface ChurchDetailProps {
   isAdmin?: boolean;
   onEditChurch?: () => void;
   onAddEvent?: () => void;
+  /** Called after an event notification is sent so the parent can refresh events (e.g. update notificationSentAt). */
+  onEventUpdated?: (event: ChurchEvent) => void | Promise<void>;
 }
 
-export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onToggleFollow, isFollowing, onViewEventDetails, isAdmin, onEditChurch, onAddEvent }) => {
+export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onToggleFollow, isFollowing, onViewEventDetails, isAdmin, onEditChurch, onAddEvent, onEventUpdated }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'clergy' | 'events' | 'donate'>('overview');
+  const [notifyEvent, setNotifyEvent] = useState<ChurchEvent | null>(null);
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
 
   return (
     <div className="bg-white min-h-screen pb-12">
@@ -38,9 +46,14 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
           </button>
         </div>
         <div className="absolute bottom-0 left-0 w-full p-6 md:p-10 bg-gradient-to-t from-black/80 to-transparent">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end">
-            <div>
-              {church.isVerified && (
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-4">
+            <div className="min-w-0 flex-1">
+              {church.status === 'pending' && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mb-2">
+                  <AlertCircle className="h-3 w-3 mr-1" /> Pending approval
+                </span>
+              )}
+              {church.isVerified && church.status !== 'pending' && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
                   <CheckCircle className="h-3 w-3 mr-1" /> Verified Church
                 </span>
@@ -50,7 +63,7 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
                 <MapPin className="h-5 w-5 mr-2" /> {church.address}, {church.city}
               </p>
             </div>
-            <div className="mt-4 md:mt-0 flex flex-wrap gap-2 sm:space-x-3 sm:gap-0">
+            <div className="mt-4 md:mt-0 flex flex-nowrap shrink-0 gap-2 overflow-x-auto scrollbar-hide pb-1">
               {isAdmin && onEditChurch && onAddEvent ? (
                 <>
                   <button 
@@ -69,6 +82,16 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
                     <Plus className="h-5 w-5 mr-2" />
                     Add Event
                   </button>
+                  {church.status === 'approved' && (
+                    <button 
+                      type="button"
+                      onClick={() => setShowSubscribeModal(true)}
+                      className="flex items-center px-5 py-3 min-h-[44px] bg-white/90 backdrop-blur text-slate-900 rounded-lg font-bold hover:bg-white transition-colors shadow-lg touch-manipulation"
+                    >
+                      <Bell className="h-5 w-5 mr-2" />
+                      Get Notifications
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
@@ -80,6 +103,16 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
                     <Heart className={`h-5 w-5 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
                     {isFollowing ? 'Following' : 'Follow'}
                   </button>
+                  {church.status === 'approved' && (
+                    <button 
+                      type="button"
+                      onClick={() => setShowSubscribeModal(true)}
+                      className="flex items-center px-5 py-3 min-h-[44px] bg-white/90 backdrop-blur text-slate-900 rounded-lg font-bold hover:bg-white transition-colors shadow-lg touch-manipulation"
+                    >
+                      <Bell className="h-5 w-5 mr-2" />
+                      Get Notifications
+                    </button>
+                  )}
                   <button 
                     type="button"
                     onClick={() => setActiveTab('donate')}
@@ -93,6 +126,27 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
           </div>
         </div>
       </div>
+
+      {/* Pending approval banner - shown to everyone when church is pending */}
+      {church.status === 'pending' && (
+        <div className="bg-amber-50 border-b border-amber-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-900">
+                  {isAdmin ? 'Your church is pending approval' : 'This listing is pending approval'}
+                </p>
+                <p className="text-sm text-amber-800 mt-0.5">
+                  {isAdmin
+                    ? "Our team will review your submission. You'll be able to edit information and add events once your church is approved."
+                    : 'This church listing is under review and will be visible to everyone once approved.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs - horizontal scroll on mobile */}
       <div className="border-b border-gray-200 sticky top-16 bg-white z-40">
@@ -248,21 +302,81 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
         )}
 
         {activeTab === 'events' && (
-          <div className="space-y-6">
-             <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
-             {church.events.length > 0 ? (
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {church.events.map(event => (
-                        <EventCard key={event.id} event={event} onViewDetails={onViewEventDetails} />
-                    ))}
-                 </div>
-             ) : (
-                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    <Calendar className="h-12 w-12 text-gray-300 mb-3" />
-                    <p className="text-gray-500 font-medium">No upcoming events listed.</p>
-                </div>
-             )}
+          <div className="space-y-10">
+            {(() => {
+              const now = new Date();
+              const upcoming = church.events.filter(e => new Date(e.date) >= now);
+              const previous = church.events.filter(e => new Date(e.date) < now);
+              return (
+                <>
+                  <section>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                      <span className="w-2 h-6 bg-green-500 rounded-full" aria-hidden />
+                      Upcoming Events
+                    </h2>
+                    <p className="text-sm text-gray-500 mb-4">Events that are still to come</p>
+                    {upcoming.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {upcoming.map(event => (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            onViewDetails={onViewEventDetails}
+                            onNotifyMembers={isAdmin ? (e) => setNotifyEvent(e) : undefined}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <Calendar className="h-12 w-12 text-gray-300 mb-3" />
+                        <p className="text-gray-500 font-medium">No upcoming events listed.</p>
+                      </div>
+                    )}
+                  </section>
+                  <section>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                      <span className="w-2 h-6 bg-gray-400 rounded-full" aria-hidden />
+                      Previous Events
+                    </h2>
+                    <p className="text-sm text-gray-500 mb-4">Events that have already taken place</p>
+                    {previous.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {previous.map(event => (
+                          <EventCard key={event.id} event={event} onViewDetails={onViewEventDetails} isPast />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <p className="text-gray-500 font-medium">No previous events.</p>
+                      </div>
+                    )}
+                  </section>
+                </>
+              );
+            })()}
           </div>
+        )}
+
+        {notifyEvent && (
+          <NotifyMembersConfirmModal
+            event={notifyEvent}
+            churchName={church.name}
+            churchId={church.id}
+            onSend={async (subscribers) => {
+              await sendEventNotificationEmail(notifyEvent, church.name, subscribers);
+              await eventService.markEventNotificationSent(notifyEvent.id);
+              await onEventUpdated?.(notifyEvent);
+            }}
+            onClose={() => setNotifyEvent(null)}
+          />
+        )}
+
+        {showSubscribeModal && (
+          <SubscribeModal
+            churchId={church.id}
+            churchName={church.name}
+            onClose={() => setShowSubscribeModal(false)}
+          />
         )}
 
         {activeTab === 'donate' && (

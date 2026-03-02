@@ -6,6 +6,7 @@ export enum ViewState {
   EVENTS = 'EVENTS',
   EVENT_DETAIL = 'EVENT_DETAIL',
   REGISTER_CHURCH = 'REGISTER_CHURCH',
+  NO_CHURCH_PROMPT = 'NO_CHURCH_PROMPT',
   LOGIN = 'LOGIN',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   CHURCH_ADMIN_DASHBOARD = 'CHURCH_ADMIN_DASHBOARD'
@@ -40,6 +41,8 @@ export interface ChurchEvent {
   imageUrl: string;
   churchName?: string; // Optional for aggregate views
   churchId?: string; // To link back to church
+  /** When the notification email was sent for this event; undefined/null if not sent yet. Used to gray out "Notify members". */
+  notificationSentAt?: string | null;
 }
 
 export interface ServiceTime {

@@ -27,11 +27,12 @@ body {
   overflow-x: hidden;
 }
 
-/* Touch-friendly scrolling on iOS */
+/* Touch-friendly horizontal scroll (iOS Safari, etc.) */
 .scroll-touch {
   -webkit-overflow-scrolling: touch;
   overflow-x: auto;
   overflow-y: hidden;
+  touch-action: pan-x;
 }
 
 .scroll-touch-y {

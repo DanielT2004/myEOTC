@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Check, AlertCircle, Loader2, ArrowRight, ArrowLeft, X, Plus, Trash2 } from 'lucide-react';
+import { Upload, Check, AlertCircle, Loader2, ArrowRight, ArrowLeft, X, Plus, Trash2, Church as ChurchIcon } from 'lucide-react';
 import { churchService } from '../services/churchService';
 import { storageService } from '../services/storageService';
 import { authService } from '../services/authService';
@@ -10,6 +10,8 @@ import { SPECIAL_PROGRAMS, DAYS_OF_WEEK, REPEAT_OPTIONS, LANGUAGES } from '../co
 interface RegisterChurchProps {
   onCancel: () => void;
   onSuccess?: () => void;
+  /** When user already has a church, call this to go to their church profile (e.g. My Dashboard) */
+  onGoToMyChurch?: () => void;
 }
 
 interface ServiceScheduleItem {
@@ -20,11 +22,13 @@ interface ServiceScheduleItem {
   repeat: string;
 }
 
-export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSuccess }) => {
+export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSuccess, onGoToMyChurch }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [alreadyHasChurch, setAlreadyHasChurch] = useState(false);
+  const [checkingExistingChurch, setCheckingExistingChurch] = useState(true);
 
   // Step 1: Admin Information
   const [adminName, setAdminName] = useState('');
@@ -56,9 +60,9 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
     hasSchool: false,
   });
 
-  // Load user profile on mount
+  // Load user profile and check if they already have a church registered
   useEffect(() => {
-    const loadUserProfile = async () => {
+    const loadUserProfileAndCheckChurch = async () => {
       try {
         const user = await authService.getCurrentUser();
         if (user) {
@@ -67,13 +71,19 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
             setUserProfile(profile);
             setAdminName(profile.full_name || '');
             setAdminEmail(profile.email || '');
+            const churches = await churchService.getChurchesForAdmin(profile.id);
+            if (churches.length > 0) {
+              setAlreadyHasChurch(true);
+            }
           }
         }
       } catch (error) {
-        console.error('Error loading user profile:', error);
+        console.error('Error loading user profile or checking church:', error);
+      } finally {
+        setCheckingExistingChurch(false);
       }
     };
-    loadUserProfile();
+    loadUserProfileAndCheckChurch();
   }, []);
 
   // Helper function to format time from 24-hour to readable format
@@ -335,6 +345,49 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
     }
   };
 
+  // Still checking if user already has a church
+  if (checkingExistingChurch) {
+    return (
+      <div className="max-w-2xl mx-auto py-20 px-4 flex flex-col items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-slate-400 mb-4" />
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  // User already has a church registered under this account
+  if (alreadyHasChurch) {
+    return (
+      <div className="max-w-2xl mx-auto py-20 px-4 text-center">
+        <div className="bg-amber-50 border border-amber-200 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+          <ChurchIcon className="h-8 w-8 text-amber-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-3">You already have a church registered</h2>
+        <p className="text-gray-600 mb-8">
+          This account is already associated with a church. You can manage your church from My Dashboard.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {onGoToMyChurch && (
+            <button
+              type="button"
+              onClick={() => onGoToMyChurch()}
+              className="bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800"
+            >
+              Go to my church
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50"
+          >
+            Back to home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Success screen
   if (step === 4) {
     return (
@@ -344,17 +397,32 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
         </div>
         <h2 className="text-3xl font-bold text-slate-900 mb-4">Registration Submitted!</h2>
         <p className="text-gray-600 mb-8 text-lg">
-          Thank you for registering your parish. Our team will review your information and approve your listing within 48 hours. You will receive an email notification once your church is approved.
+          Thank you for registering your parish. Our team will review your information and approve your listing within 48 hours. You will receive an email notification once your church is approved. Your church profile is now visible with a &quot;Pending approval&quot; status.
         </p>
-        <button 
-          onClick={() => {
-            onCancel();
-            if (onSuccess) onSuccess();
-          }}
-          className="bg-slate-900 text-white px-8 py-3 rounded-lg font-medium hover:bg-slate-800"
-        >
-          Return Home
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {onGoToMyChurch && (
+            <button
+              type="button"
+              onClick={() => {
+                if (onSuccess) onSuccess();
+                onGoToMyChurch();
+              }}
+              className="bg-slate-900 text-white px-8 py-3 rounded-lg font-medium hover:bg-slate-800"
+            >
+              View my church profile
+            </button>
+          )}
+          <button 
+            type="button"
+            onClick={() => {
+              onCancel();
+              if (onSuccess) onSuccess();
+            }}
+            className={onGoToMyChurch ? 'bg-white border border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-medium hover:bg-gray-50' : 'bg-slate-900 text-white px-8 py-3 rounded-lg font-medium hover:bg-slate-800'}
+          >
+            Return Home
+          </button>
+        </div>
       </div>
     );
   }

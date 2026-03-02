@@ -25,12 +25,15 @@ export const Home: React.FC<HomeProps> = ({
   churches,
   events
 }) => {
+  const featuredChurches = churches.slice(0, 6);
+  const featuredEvents = events.slice(0, 6);
+
   return (
     <>
       <Hero onSearch={onSearch} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        {/* Featured Section - Horizontal Scroll */}
+        {/* Featured Section - horizontal strip with max 6 cards */}
         <div className="mb-10 sm:mb-16">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-4 sm:mb-6">
              <div>
@@ -46,30 +49,28 @@ export const Home: React.FC<HomeProps> = ({
              </button>
           </div>
           
-          {/* Horizontal Scroll Container - touch-friendly on mobile */}
           <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
-              <div className="flex overflow-x-auto pb-8 gap-4 sm:gap-6 scrollbar-hide scroll-touch snap-x snap-mandatory">
-                {churches.length === 0 ? (
-                  <div className="min-w-[85vw] sm:min-w-[400px] snap-center text-center py-12 text-gray-500">
-                    No churches found
-                  </div>
-                ) : (
-                  churches.map(church => (
-                    <div key={church.id} className="min-w-[85vw] sm:min-w-[400px] snap-center">
-                      <ChurchCard 
-                        church={church} 
-                        onViewDetails={onViewDetails}
-                        onToggleFollow={onToggleFollow}
-                        isFollowing={followedChurches.has(church.id)}
-                      />
-                    </div>
-                  ))
-                )}
+            <div className="flex overflow-x-auto overflow-y-hidden pb-4 sm:pb-6 gap-4 sm:gap-6 scrollbar-hide scroll-touch snap-x snap-proximity">
+            {featuredChurches.length === 0 ? (
+              <div className="min-w-full text-center py-12 text-gray-500">
+                No churches found
               </div>
+            ) : (
+              featuredChurches.map(church => (
+                <div key={church.id} className="min-w-[85vw] sm:min-w-[360px] sm:max-w-[360px] h-[400px] sm:h-[420px] flex-shrink-0 snap-start">
+                  <ChurchCard
+                    church={church}
+                    onViewDetails={onViewDetails}
+                    isCompact
+                  />
+                </div>
+              ))
+            )}
+            </div>
           </div>
         </div>
 
-        {/* Upcoming Events Section */}
+        {/* Upcoming Events Section - horizontal strip with max 6 cards */}
         <div>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-4 sm:mb-6">
              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Upcoming Events & Holidays</h2>
@@ -81,20 +82,24 @@ export const Home: React.FC<HomeProps> = ({
                View Calendar &rarr;
              </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {events.length === 0 ? (
-              <div className="col-span-3 text-center py-12 text-gray-500">
+          <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex overflow-x-auto overflow-y-hidden pb-4 sm:pb-6 gap-4 sm:gap-6 scrollbar-hide scroll-touch snap-x snap-proximity">
+            {featuredEvents.length === 0 ? (
+              <div className="min-w-full text-center py-12 text-gray-500">
                 No upcoming events
               </div>
             ) : (
-              events.slice(0, 6).map(event => (
-                <EventCard 
-                  key={event.id} 
-                  event={event}
-                  onViewDetails={onViewEventDetails}
-                />
+              featuredEvents.map(event => (
+                <div key={event.id} className="min-w-[85vw] sm:min-w-[360px] sm:max-w-[360px] h-[400px] sm:h-[420px] flex-shrink-0 snap-start">
+                  <EventCard
+                    event={event}
+                    onViewDetails={onViewEventDetails}
+                    isCompact
+                  />
+                </div>
               ))
             )}
+            </div>
           </div>
         </div>
       </main>

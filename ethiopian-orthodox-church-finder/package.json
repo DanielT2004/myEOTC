@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.2",
+    "@trycourier/courier": "^7.3.0",
     "lucide-react": "^0.556.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "supabase": "^2.76.15",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "vitest": "^2.1.0"

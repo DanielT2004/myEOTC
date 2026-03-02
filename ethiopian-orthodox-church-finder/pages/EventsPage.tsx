@@ -43,11 +43,12 @@ export const EventsPage: React.FC<EventsPageProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 pb-6 sm:pb-8">
                     {events.length > 0 ? (
                         events.map((event) => (
+                        <div key={event.id} className="min-w-0">
                         <EventCard 
-                            key={event.id} 
                             event={event}
                             onViewDetails={onViewEventDetails}
                         />
+                        </div>
                         ))
                     ) : (
                         <div className="col-span-full text-center py-20 bg-white rounded-lg border border-gray-200">
