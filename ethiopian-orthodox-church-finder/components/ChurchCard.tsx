@@ -25,24 +25,24 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, i
           alt={church.name} 
           className="w-full h-full object-cover"
         />
-        <div className="absolute bottom-2 left-2 text-white text-xs font-bold bg-black/40 px-2 py-1 rounded">
+        <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 text-white text-[10px] sm:text-xs font-bold bg-black/40 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
           Church Exterior
         </div>
       </div>
       
-      <div className={`p-6 flex flex-col justify-between min-w-0 flex-1 min-h-0 overflow-hidden ${isCompact ? 'w-full' : 'md:w-3/5'}`}>
+      <div className={`p-4 sm:p-6 flex flex-col justify-between min-w-0 flex-1 min-h-0 overflow-hidden ${isCompact ? 'w-full' : 'md:w-3/5'}`}>
         <div className="min-w-0 min-h-0 flex-1 flex flex-col overflow-hidden">
-          <div className="mb-2 min-w-0">
+          <div className="mb-1.5 sm:mb-2 min-w-0">
             <h3 className={`${nameSizeClass} font-bold text-slate-900 leading-tight break-words line-clamp-2 min-w-0`}>{church.name}</h3>
           </div>
           
-          <div className="space-y-2 mb-4 min-w-0 flex-shrink-0">
-            <div className="flex items-start text-gray-600 text-sm min-w-0 overflow-hidden">
-              <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-4 min-w-0 flex-shrink-0">
+            <div className="flex items-start text-gray-600 text-xs sm:text-sm min-w-0 overflow-hidden">
+              <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 flex-shrink-0 mt-0.5" />
               <span className="break-words line-clamp-2 min-w-0">{church.address}, {church.city}, {church.state} {church.zip}</span>
             </div>
-            <div className="flex items-center text-gray-600 text-sm">
-              <Phone className="h-4 w-4 mr-2" />
+            <div className="flex items-center text-gray-600 text-xs sm:text-sm">
+              <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 flex-shrink-0" />
               {church.phone}
             </div>
            
@@ -50,29 +50,29 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, i
 
           {/* Clergy Preview */}
           {church.clergy.length > 0 && (
-            <div className="flex items-center space-x-2 mb-4 flex-shrink-0">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 mb-2 sm:mb-4 flex-shrink-0">
                 <div className="flex -space-x-2 overflow-hidden">
                     {church.clergy.slice(0, 3).map((cleric) => (
                         <img 
                             key={cleric.id}
-                            className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
+                            className="inline-block h-6 w-6 sm:h-8 sm:w-8 rounded-full ring-2 ring-white object-cover"
                             src={cleric.imageUrl || DEFAULT_CLERGY_IMAGE}
                             alt={cleric.name}
                         />
                     ))}
                 </div>
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-[10px] sm:text-xs text-gray-500 font-medium">
                     {church.clergy.length > 3 ? `+${church.clergy.length - 3} more` : 'Serving our community'}
                 </span>
             </div>
           )}
         </div>
 
-        <div className="mt-4 flex-shrink-0">
+        <div className="mt-2 sm:mt-4 flex-shrink-0">
           <button 
             type="button"
             onClick={() => onViewDetails(church)}
-            className="w-full bg-slate-900 text-white px-4 py-3 min-h-[44px] rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors text-center touch-manipulation"
+            className="w-full bg-slate-900 text-white px-3 sm:px-4 py-2 sm:py-3 min-h-[40px] sm:min-h-[44px] rounded-lg text-xs sm:text-sm font-semibold hover:bg-slate-800 transition-colors text-center touch-manipulation"
           >
             View Details
           </button>

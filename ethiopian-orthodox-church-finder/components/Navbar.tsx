@@ -61,19 +61,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-14 sm:h-16 items-center">
           <div 
-            className="flex items-center cursor-pointer" 
+            className="flex items-center cursor-pointer min-w-0" 
             onClick={() => onNavigate(ViewState.HOME)}
           >
-            <div className="bg-slate-900 p-2 rounded-lg mr-2">
-              <ChurchIcon className="h-6 w-6 text-white" />
+            <div className="bg-slate-900 p-1.5 sm:p-2 rounded-lg mr-1.5 sm:mr-2 flex-shrink-0">
+              <ChurchIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900 hidden sm:block">
+            <span className="font-bold text-base sm:text-xl tracking-tight text-slate-900 hidden sm:block truncate">
               Ethiopian Orthodox Church Finder
             </span>
-            <span className="font-bold text-xl tracking-tight text-slate-900 sm:hidden">
+            <span className="font-bold text-base sm:text-xl tracking-tight text-slate-900 sm:hidden truncate">
               EOTC Finder
             </span>
           </div>
@@ -192,7 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   Sign In
                 </button>
-                <button 
+<button
                   onClick={() => {
                     if (!user) {
                       onShowLogin();
@@ -200,7 +200,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       onNavigate(ViewState.REGISTER_CHURCH);
                     }
                   }}
-                  className="bg-slate-900 text-white px-4 py-2 rounded-md font-medium hover:bg-slate-800 transition-colors"
+                  className="bg-slate-900 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm sm:text-base font-medium hover:bg-slate-800 transition-colors"
                 >
                   Register Church
                 </button>
@@ -210,9 +210,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               aria-label="Open menu"
               onClick={() => setShowMobileMenu((v) => !v)}
-              className="md:hidden p-2.5 -mr-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="md:hidden p-2 -mr-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
             >
-              <Menu size={24} />
+              <Menu size={22} />
             </button>
           </div>
         </div>
@@ -221,29 +221,29 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile menu */}
       {showMobileMenu && (
         <div className="md:hidden border-t border-gray-100 bg-white">
-          <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
+          <div className="max-w-7xl mx-auto px-3 py-2 space-y-0.5">
             <button
               onClick={() => handleNavigate(ViewState.HOME)}
-              className={`block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] flex items-center ${currentView === ViewState.HOME ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+              className={`block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium min-h-[40px] flex items-center touch-manipulation ${currentView === ViewState.HOME ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
             >
               Home
             </button>
             <button
               onClick={() => handleNavigate(ViewState.SEARCH)}
-              className={`block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] flex items-center ${currentView === ViewState.SEARCH ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+              className={`block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium min-h-[40px] flex items-center touch-manipulation ${currentView === ViewState.SEARCH ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
             >
               Find Churches
             </button>
             <button
               onClick={() => handleNavigate(ViewState.EVENTS)}
-              className={`block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] flex items-center ${currentView === ViewState.EVENTS ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
+              className={`block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium min-h-[40px] flex items-center touch-manipulation ${currentView === ViewState.EVENTS ? 'bg-slate-100 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}
             >
               Events
             </button>
             {user?.role === 'super_admin' && (
               <button
                 onClick={() => handleNavigate(ViewState.ADMIN_DASHBOARD)}
-                className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] text-gray-700 hover:bg-gray-50"
+                className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium min-h-[40px] text-gray-700 hover:bg-gray-50 touch-manipulation"
               >
                 Admin
               </button>
@@ -251,7 +251,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {(user?.role === 'church_admin' || user?.role === 'super_admin') && (
               <button
                 onClick={() => onGoToMyDashboard ? onGoToMyDashboard() : handleNavigate(ViewState.CHURCH_ADMIN_DASHBOARD)}
-                className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] text-gray-700 hover:bg-gray-50"
+                className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium min-h-[40px] text-gray-700 hover:bg-gray-50 touch-manipulation"
               >
                 My Church
               </button>
@@ -259,7 +259,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {!user && (
               <button
                 onClick={() => { onShowLogin(); setShowMobileMenu(false); }}
-                className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium min-h-[44px] text-gray-700 hover:bg-gray-50"
+                className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium min-h-[40px] text-gray-700 hover:bg-gray-50 touch-manipulation"
               >
                 Sign In
               </button>

@@ -15,7 +15,7 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
   };
 
   return (
-    <div className="relative bg-white overflow-hidden py-20 px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
+    <div className="relative bg-white overflow-hidden py-10 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
       {/* Abstract Cross Background Image */}
       {/* 
          NOTE: To use your local image:
@@ -31,27 +31,27 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto">
-        <p className="text-slate-500 italic mb-6 font-medium">
+        <p className="text-slate-500 italic mb-3 sm:mb-6 text-sm sm:text-base font-medium">
           Matthew 16:18 <br/>
           "Upon this rock I will build my church, and the gates of hell shall not prevail against it."
         </p>
         
-        <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight mb-8 leading-tight">
+        <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight mb-4 sm:mb-8 leading-tight">
           Find Ethiopian Orthodox Churches <br className="hidden md:block"/> in Your Community
         </h1>
         
-        <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
+        <p className="text-sm sm:text-lg md:text-xl text-slate-600 mb-6 sm:mb-10 max-w-2xl mx-auto">
           Connect with your faith community. Discover churches, meet clergy, attend events, and support through donations.
         </p>
 
-        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto flex flex-col sm:flex-row shadow-lg rounded-lg overflow-hidden">
+        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto flex flex-col sm:flex-row shadow-md sm:shadow-lg rounded-xl overflow-hidden">
           <div className="relative flex-grow min-w-0">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-3.5 sm:py-4 rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none border border-gray-300 focus:ring-slate-500 focus:border-slate-500 text-base bg-white min-h-[48px]"
+              className="block w-full pl-9 sm:pl-10 pr-3 py-2.5 sm:py-3.5 md:py-4 rounded-t-xl sm:rounded-l-xl sm:rounded-tr-none border border-gray-200 sm:border-gray-300 focus:ring-slate-500 focus:border-slate-500 text-sm sm:text-base bg-white min-h-[44px] sm:min-h-[48px]"
               placeholder="Search by city, zip code, or church name..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -59,7 +59,7 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
           </div>
           <button
             type="submit"
-            className="inline-flex items-center justify-center px-6 py-3.5 sm:py-4 min-h-[48px] border border-transparent text-base font-medium rounded-b-lg sm:rounded-r-lg sm:rounded-bl-none text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 touch-manipulation"
+            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3.5 md:py-4 min-h-[44px] sm:min-h-[48px] border border-transparent text-sm sm:text-base font-medium rounded-b-xl sm:rounded-r-xl sm:rounded-bl-none text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 touch-manipulation"
           >
             Search
           </button>
