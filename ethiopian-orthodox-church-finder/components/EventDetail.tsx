@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ChurchEvent } from '../types';
-import { MapPin, Calendar, Clock, ArrowLeft, Share2, Navigation, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Clock, ArrowLeft, Navigation, Trash2 } from 'lucide-react';
 import { DEFAULT_EVENT_IMAGE } from '../constants';
 
 interface EventDetailProps {
@@ -101,13 +101,6 @@ export const EventDetail: React.FC<EventDetailProps> = ({ event, onBack, onViewC
                         </div>
                         
                         <hr className="border-slate-200 my-3 sm:my-4" />
-                        
-                        <button className="w-full bg-slate-900 text-white font-semibold sm:font-bold py-2.5 sm:py-3 text-sm sm:text-base rounded-lg hover:bg-slate-800 transition-colors shadow-sm touch-manipulation">
-                            Add to Calendar
-                        </button>
-                        <button className="w-full bg-white border border-gray-300 text-slate-700 font-semibold sm:font-bold py-2.5 sm:py-3 text-sm sm:text-base rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center touch-manipulation">
-                            <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" /> Share Event
-                        </button>
                         {isAdmin && onDeleteEvent && (
                           <>
                             <hr className="border-slate-200 my-3 sm:my-4" />

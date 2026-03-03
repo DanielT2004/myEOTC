@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { ChurchDetail } from './components/ChurchDetail';
 import { EventDetail } from './components/EventDetail';
@@ -15,7 +16,7 @@ import { calculateDistance } from './utils/distance';
 import { filterChurches, filterEvents } from './utils/searchFilters';
 import { canViewChurchDetail } from './utils/churchVisibility';
 import { authService } from './services/authService';
-import { followService } from './services/followService';
+import { getViewFromPathname, getPathForView } from './utils/routes';
 
 // Pages
 import { Home } from './pages/Home';
@@ -23,7 +24,11 @@ import { ChurchSearch } from './pages/ChurchSearch';
 import { EventsPage } from './pages/EventsPage';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeParams = getViewFromPathname(location.pathname);
+  const currentView = routeParams.view;
+
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -32,11 +37,9 @@ const App: React.FC = () => {
   // Selection State
   const [selectedChurch, setSelectedChurch] = useState<Church | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ChurchEvent | null>(null);
-  const [followedChurches, setFollowedChurches] = useState<Set<string>>(new Set());
   const [isAdminOfSelectedChurch, setIsAdminOfSelectedChurch] = useState(false);
   const [isAdminOfEventChurch, setIsAdminOfEventChurch] = useState(false);
-  const [showEventFormOnAdminDashboard, setShowEventFormOnAdminDashboard] = useState(false);
-  
+
   // Data State
   const [churches, setChurches] = useState<Church[]>([]);
   const [events, setEvents] = useState<ChurchEvent[]>([]);
@@ -109,7 +112,6 @@ const App: React.FC = () => {
           }
         } else {
           setUser(null);
-          setFollowedChurches(new Set());
         }
       });
 
@@ -122,22 +124,6 @@ const App: React.FC = () => {
       return () => {};
     }
   }, []);
-
-  // Load followed churches for logged in user
-  useEffect(() => {
-    const loadFollowedChurches = async () => {
-      if (user) {
-        try {
-          const followed = await followService.getFollowedChurches(user.id);
-          setFollowedChurches(new Set(followed));
-        } catch (error) {
-          console.error('Error loading followed churches:', error);
-        }
-      }
-    };
-
-    loadFollowedChurches();
-  }, [user]);
 
   // Load churches from Supabase
   useEffect(() => {
@@ -191,8 +177,100 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleNavigate = (view: ViewState) => {
-    setCurrentView(view);
+  // Load church by ID when URL is /churches/:id (direct link or refresh)
+  useEffect(() => {
+    if (currentView !== ViewState.CHURCH_DETAIL || !routeParams.churchId) return;
+    if (selectedChurch?.id === routeParams.churchId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const church = await churchService.getChurchById(routeParams.churchId!);
+        if (cancelled) return;
+        if (!church) {
+          navigate('/search', { replace: true });
+          return;
+        }
+        const churchEvents = await eventService.getEventsForChurch(church.id).catch(() => []);
+        const churchWithEvents = { ...church, events: churchEvents };
+        setSelectedChurch(churchWithEvents);
+        if (user && church) {
+          const isAdmin = await churchService.isUserAdminOfChurch(user.id, church.id);
+          setIsAdminOfSelectedChurch(isAdmin);
+        } else {
+          setIsAdminOfSelectedChurch(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setSelectedChurch(null);
+          navigate('/search', { replace: true });
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentView, routeParams.churchId, user?.id, navigate]);
+
+  // Load event by ID when URL is /events/:id (direct link or refresh)
+  useEffect(() => {
+    if (currentView !== ViewState.EVENT_DETAIL || !routeParams.eventId) return;
+    if (selectedEvent?.id === routeParams.eventId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const event = await eventService.getEventById(routeParams.eventId!);
+        if (cancelled) return;
+        if (!event) {
+          navigate('/events', { replace: true });
+          return;
+        }
+        setSelectedEvent(event);
+        if (user && event.churchId) {
+          const isAdmin = await churchService.isUserAdminOfChurch(user.id, event.churchId);
+          setIsAdminOfEventChurch(isAdmin);
+        } else {
+          setIsAdminOfEventChurch(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setSelectedEvent(null);
+          navigate('/events', { replace: true });
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentView, routeParams.eventId, user?.id, navigate]);
+
+  // Protected routes: redirect unauthorized users
+  useEffect(() => {
+    if (loadingUser) return;
+    const { view, churchId } = routeParams;
+    if (view === ViewState.ADMIN_DASHBOARD && user?.role !== 'super_admin') {
+      navigate('/', { replace: true });
+      return;
+    }
+    if (view === ViewState.NO_CHURCH_PROMPT && user?.role !== 'church_admin' && user?.role !== 'super_admin') {
+      navigate('/', { replace: true });
+      return;
+    }
+    if (view === ViewState.CHURCH_ADMIN_DASHBOARD && churchId) {
+      if (!user) {
+        navigate(`/churches/${churchId}`, { replace: true });
+        return;
+      }
+      let cancelled = false;
+      churchService.isUserAdminOfChurch(user.id, churchId).then((isAdmin) => {
+        if (!cancelled && !isAdmin && user.role !== 'super_admin') {
+          navigate(`/churches/${churchId}`, { replace: true });
+        }
+      }).catch(() => {
+        if (!cancelled) navigate(`/churches/${churchId}`, { replace: true });
+      });
+      return () => { cancelled = true; };
+    }
+  }, [loadingUser, user?.id, user?.role, location.pathname, navigate]);
+
+  const handleNavigate = (view: ViewState, opts?: { churchId?: string; eventId?: string }) => {
+    const path = getPathForView(view, opts);
+    navigate(path);
     if (view !== ViewState.CHURCH_DETAIL) setSelectedChurch(null);
     if (view !== ViewState.EVENT_DETAIL) setSelectedEvent(null);
     window.scrollTo(0, 0);
@@ -261,32 +339,25 @@ const App: React.FC = () => {
   };
 
   const handleViewDetails = async (church: Church) => {
-    // Load events for this church
     try {
       const churchEvents = await eventService.getEventsForChurch(church.id);
-      // Update church object with events
       const churchWithEvents = { ...church, events: churchEvents };
       setSelectedChurch(churchWithEvents);
     } catch (error) {
       console.error('Error loading events for church:', error);
-      // Still show the church even if events fail to load
       setSelectedChurch(church);
     }
-    
-    // Check if current user is an admin of this church
     if (user) {
       try {
         const isAdmin = await churchService.isUserAdminOfChurch(user.id, church.id);
         setIsAdminOfSelectedChurch(isAdmin);
-      } catch (error) {
-        console.error('Error checking admin status:', error);
+      } catch {
         setIsAdminOfSelectedChurch(false);
       }
     } else {
       setIsAdminOfSelectedChurch(false);
     }
-    
-    setCurrentView(ViewState.CHURCH_DETAIL);
+    navigate(`/churches/${church.id}`);
     window.scrollTo(0, 0);
   };
 
@@ -302,7 +373,7 @@ const App: React.FC = () => {
     } else {
       setIsAdminOfEventChurch(false);
     }
-    setCurrentView(ViewState.EVENT_DETAIL);
+    navigate(`/events/${event.id}`);
     window.scrollTo(0, 0);
   };
 
@@ -316,7 +387,8 @@ const App: React.FC = () => {
         setSelectedChurch(prev => prev ? { ...prev, events: prev.events.filter(e => e.id !== eventId) } : null);
       }
       setSelectedEvent(null);
-      handleNavigate(ViewState.EVENTS);
+      navigate('/events');
+      window.scrollTo(0, 0);
     } catch (err) {
       console.error('Error deleting event:', err);
     }
@@ -336,16 +408,14 @@ const App: React.FC = () => {
 
   const handleEditChurch = () => {
     if (selectedChurch) {
-      setShowEventFormOnAdminDashboard(false);
-      setCurrentView(ViewState.CHURCH_ADMIN_DASHBOARD);
+      navigate(`/churches/${selectedChurch.id}/edit`);
       window.scrollTo(0, 0);
     }
   };
 
   const handleAddEvent = () => {
     if (selectedChurch) {
-      setShowEventFormOnAdminDashboard(true);
-      setCurrentView(ViewState.CHURCH_ADMIN_DASHBOARD);
+      navigate(`/churches/${selectedChurch.id}/edit`, { state: { addEvent: true } });
       window.scrollTo(0, 0);
     }
   };
@@ -357,35 +427,13 @@ const App: React.FC = () => {
       if (churches.length > 0) {
         await handleViewDetails(churches[0]);
       } else {
-        handleNavigate(ViewState.NO_CHURCH_PROMPT);
+        navigate('/admin/no-church');
+        window.scrollTo(0, 0);
       }
     } catch (e) {
       console.error('Error loading your church:', e);
-      handleNavigate(ViewState.HOME);
-    }
-  };
-
-  const handleToggleFollow = async (id: string) => {
-    if (!user) {
-      setShowLogin(true);
-      return;
-    }
-
-    try {
-      const isFollowing = followedChurches.has(id);
-      if (isFollowing) {
-        await followService.unfollowChurch(user.id, id);
-        setFollowedChurches(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(id);
-          return newSet;
-        });
-      } else {
-        await followService.followChurch(user.id, id);
-        setFollowedChurches(prev => new Set(prev).add(id));
-      }
-    } catch (error) {
-      console.error('Error toggling follow:', error);
+      navigate('/');
+      window.scrollTo(0, 0);
     }
   };
 
@@ -478,8 +526,6 @@ const App: React.FC = () => {
             onSearch={handleSearch}
             onViewDetails={handleViewDetails}
             onViewEventDetails={handleViewEventDetails}
-            onToggleFollow={handleToggleFollow}
-            followedChurches={followedChurches}
             churches={loadingChurches ? [] : filteredChurches}
             events={loadingEvents ? [] : filterEvents(processedEvents, { searchQuery: eventFilters.query, filters: eventFilters })}
           />
@@ -493,8 +539,6 @@ const App: React.FC = () => {
             setSearchQuery={setSearchQuery}
             churches={loadingChurches ? [] : (searchResults !== null ? searchResults : sortedChurches)}
             onViewDetails={handleViewDetails}
-            onToggleFollow={handleToggleFollow}
-            followedChurches={followedChurches}
             onSearchChurches={handleSearchChurches}
             onClearSearch={handleClearSearch}
             isSearching={searchingChurches}
@@ -502,6 +546,11 @@ const App: React.FC = () => {
           />
         )}
 
+        {currentView === ViewState.CHURCH_DETAIL && routeParams.churchId && (!selectedChurch || selectedChurch.id !== routeParams.churchId) && (
+          <main className="max-w-2xl mx-auto py-20 px-4 text-center">
+            <div className="text-gray-500">Loading church...</div>
+          </main>
+        )}
         {currentView === ViewState.CHURCH_DETAIL && selectedChurch && (
           !canViewChurchDetail(selectedChurch, isAdminOfSelectedChurch)
             ? (
@@ -509,7 +558,7 @@ const App: React.FC = () => {
                   <p className="text-gray-600 mb-6">This church is not available yet.</p>
                   <button
                     type="button"
-                    onClick={() => { setSelectedChurch(null); handleNavigate(ViewState.SEARCH); }}
+                    onClick={() => navigate('/search')}
                     className="bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800"
                   >
                     Back to search
@@ -519,9 +568,7 @@ const App: React.FC = () => {
             : (
                 <ChurchDetail 
                   church={selectedChurch} 
-                  onBack={() => handleNavigate(ViewState.SEARCH)} 
-                  onToggleFollow={handleToggleFollow}
-                  isFollowing={followedChurches.has(selectedChurch.id)}
+                  onBack={() => navigate('/search')} 
                   onViewEventDetails={handleViewEventDetails}
                   isAdmin={isAdminOfSelectedChurch}
                   onEditChurch={isAdminOfSelectedChurch ? handleEditChurch : undefined}
@@ -549,10 +596,15 @@ const App: React.FC = () => {
           />
         )}
 
+        {currentView === ViewState.EVENT_DETAIL && routeParams.eventId && (!selectedEvent || selectedEvent.id !== routeParams.eventId) && (
+          <main className="max-w-2xl mx-auto py-20 px-4 text-center">
+            <div className="text-gray-500">Loading event...</div>
+          </main>
+        )}
         {currentView === ViewState.EVENT_DETAIL && selectedEvent && (
           <EventDetail 
             event={selectedEvent}
-            onBack={() => handleNavigate(ViewState.EVENTS)}
+            onBack={() => navigate('/events')}
             onViewChurch={handleViewChurchFromEvent}
             isAdmin={isAdminOfEventChurch}
             onDeleteEvent={handleDeleteEventFromDetail}
@@ -568,7 +620,7 @@ const App: React.FC = () => {
               </p>
               <button
                 type="button"
-                onClick={() => handleNavigate(ViewState.REGISTER_CHURCH)}
+                onClick={() => navigate('/register')}
                 className="text-slate-900 font-semibold underline hover:no-underline mb-8 inline-block"
               >
                 Register a church
@@ -576,14 +628,14 @@ const App: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
                   type="button"
-                  onClick={() => handleNavigate(ViewState.REGISTER_CHURCH)}
+                  onClick={() => navigate('/register')}
                   className="bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800"
                 >
                   Register a church
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleNavigate(ViewState.HOME)}
+                  onClick={() => navigate('/')}
                   className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50"
                 >
                   Back to home
@@ -595,35 +647,30 @@ const App: React.FC = () => {
 
         {currentView === ViewState.REGISTER_CHURCH && (
           <RegisterChurch 
-            onCancel={() => handleNavigate(ViewState.HOME)}
+            onCancel={() => navigate('/')}
             onSuccess={handleAuthSuccess}
             onGoToMyChurch={handleGoToMyDashboard}
           />
         )}
 
         {currentView === ViewState.ADMIN_DASHBOARD && user?.role === 'super_admin' && (
-          <AdminDashboard onBack={() => handleNavigate(ViewState.HOME)} />
+          <AdminDashboard onBack={() => navigate('/')} />
         )}
 
         {currentView === ViewState.CHURCH_ADMIN_DASHBOARD && (user?.role === 'church_admin' || user?.role === 'super_admin') && (
           <ChurchAdminDashboard 
-            onBack={() => {
-              setShowEventFormOnAdminDashboard(false);
-              handleNavigate(ViewState.HOME);
-            }}
+            onBack={() => navigate('/')}
             onViewProfile={handleViewDetails}
             onChurchUpdated={(updatedChurch) => {
-              // Update the main churches state when a church is edited
               setChurches(prevChurches => 
                 prevChurches.map(c => c.id === updatedChurch.id ? updatedChurch : c)
               );
-              // Update selectedChurch if it's the one being edited
               if (selectedChurch && selectedChurch.id === updatedChurch.id) {
                 setSelectedChurch(updatedChurch);
               }
             }}
-            initialChurchId={selectedChurch?.id}
-            initialShowEventForm={showEventFormOnAdminDashboard}
+            initialChurchId={routeParams.churchId ?? selectedChurch?.id}
+            initialShowEventForm={location.state?.addEvent === true}
           />
         )}
       </div>

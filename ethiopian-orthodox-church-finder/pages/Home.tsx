@@ -9,8 +9,6 @@ interface HomeProps {
   onSearch: (query: string) => void;
   onViewDetails: (church: Church) => void;
   onViewEventDetails: (event: ChurchEvent) => void;
-  onToggleFollow: (id: string) => void;
-  followedChurches: Set<string>;
   churches: Church[];
   events: ChurchEvent[];
 }
@@ -20,8 +18,6 @@ export const Home: React.FC<HomeProps> = ({
   onSearch,
   onViewDetails,
   onViewEventDetails,
-  onToggleFollow,
-  followedChurches,
   churches,
   events
 }) => {

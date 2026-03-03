@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Church, ChurchEvent } from '../types';
-import { MapPin, Phone, ArrowLeft, Heart, CheckCircle, CreditCard, Calendar, Clock, Globe, Info, Accessibility, Car, BookOpen, Edit, Plus, AlertCircle, Bell } from 'lucide-react';
+import { MapPin, Phone, ArrowLeft, CheckCircle, CreditCard, Calendar, Clock, Globe, Info, Accessibility, Car, BookOpen, Edit, Plus, AlertCircle, Bell } from 'lucide-react';
 import { EventCard } from './EventCard';
 import { NotifyMembersConfirmModal } from './NotifyMembersConfirmModal';
 import { SubscribeModal } from './SubscribeModal';
@@ -12,8 +12,6 @@ import { DEFAULT_CHURCH_IMAGE, DEFAULT_CLERGY_IMAGE } from '../constants';
 interface ChurchDetailProps {
   church: Church;
   onBack: () => void;
-  onToggleFollow: (id: string) => void;
-  isFollowing: boolean;
   onViewEventDetails?: (event: ChurchEvent) => void;
   isAdmin?: boolean;
   onEditChurch?: () => void;
@@ -22,7 +20,7 @@ interface ChurchDetailProps {
   onEventUpdated?: (event: ChurchEvent) => void | Promise<void>;
 }
 
-export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onToggleFollow, isFollowing, onViewEventDetails, isAdmin, onEditChurch, onAddEvent, onEventUpdated }) => {
+export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onViewEventDetails, isAdmin, onEditChurch, onAddEvent, onEventUpdated }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'clergy' | 'events' | 'donate'>('overview');
   const [notifyEvent, setNotifyEvent] = useState<ChurchEvent | null>(null);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
@@ -95,14 +93,6 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
                 </>
               ) : (
                 <>
-                  <button 
-                    type="button"
-                    onClick={() => onToggleFollow(church.id)}
-                    className={`flex items-center px-3 py-2 sm:px-5 sm:py-3 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs sm:text-base font-bold transition-colors touch-manipulation whitespace-nowrap ${isFollowing ? 'bg-white text-red-500' : 'bg-transparent border border-white text-white hover:bg-white/10'}`}
-                  >
-                    <Heart className={`h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 ${isFollowing ? 'fill-current' : ''}`} />
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </button>
                   {church.status === 'approved' && (
                     <button 
                       type="button"
@@ -264,10 +254,6 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onTo
                                 <span>{church.members} Members</span>
                             </div>
                         </div>
-
-                        <button className="w-full mt-3 sm:mt-4 bg-slate-900 text-white font-semibold py-2.5 sm:py-3 text-sm sm:text-base rounded-lg hover:bg-slate-800 transition-colors shadow-sm touch-manipulation">
-                            Get Directions
-                        </button>
                     </div>
                 </div>
             </div>

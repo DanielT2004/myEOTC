@@ -12,8 +12,6 @@ interface ChurchSearchProps {
   setSearchQuery: (query: string) => void;
   churches: Church[];
   onViewDetails: (church: Church) => void;
-  onToggleFollow: (id: string) => void;
-  followedChurches: Set<string>;
   onSearchChurches?: () => void;
   onClearSearch?: () => void;
   isSearching?: boolean;
@@ -27,8 +25,6 @@ export const ChurchSearch: React.FC<ChurchSearchProps> = ({
   setSearchQuery,
   churches,
   onViewDetails,
-  onToggleFollow,
-  followedChurches,
   onSearchChurches,
   onClearSearch,
   isSearching = false,
