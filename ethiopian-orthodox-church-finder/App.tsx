@@ -53,14 +53,21 @@ const App: React.FC = () => {
     distance: 25,
     services: {}
   });
+  const [searchResults, setSearchResults] = useState<Church[] | null>(null);
+  const [searchingChurches, setSearchingChurches] = useState(false);
   
   // Event Filter State
   const [eventFilters, setEventFilters] = useState<EventFilterState>({
     query: '',
     location: '',
     types: {},
-    dateRange: 'upcoming'
+    dateRange: 'upcoming',
+    distance: 25,
   });
+
+  // Event Search State
+  const [eventSearchResults, setEventSearchResults] = useState<ChurchEvent[] | null>(null);
+  const [searchingEvents, setSearchingEvents] = useState(false);
 
   // Load user profile
   useEffect(() => {
@@ -192,7 +199,64 @@ const App: React.FC = () => {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    setFilters((prev) => ({ ...prev, churchName: query }));
     handleNavigate(ViewState.SEARCH);
+  };
+
+  const handleSearchChurches = async () => {
+    setSearchingChurches(true);
+    try {
+      const selectedServices = Object.entries(filters.services)
+        .filter(([, v]) => v)
+        .map(([k]) => k);
+      const results = await churchService.searchChurches({
+        churchName: filters.churchName.trim() || undefined,
+        location: filters.location.trim() || undefined,
+        distance: filters.distance,
+        services: selectedServices.length > 0 ? selectedServices : undefined,
+        userLocation,
+      });
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Search failed:', err);
+      setSearchResults([]);
+    } finally {
+      setSearchingChurches(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchResults(null);
+    setSearchQuery('');
+    setFilters({ churchName: '', location: '', distance: 25, services: {} });
+  };
+
+  const handleSearchEvents = async () => {
+    setSearchingEvents(true);
+    try {
+      const selectedTypes = Object.entries(eventFilters.types)
+        .filter(([, v]) => v)
+        .map(([k]) => k);
+      const results = await eventService.searchEvents({
+        query: eventFilters.query.trim() || undefined,
+        location: eventFilters.location.trim() || undefined,
+        distance: eventFilters.distance ?? 25,
+        types: selectedTypes.length > 0 ? selectedTypes : undefined,
+        dateRange: eventFilters.dateRange,
+        userLocation,
+      });
+      setEventSearchResults(results);
+    } catch (err) {
+      console.error('Event search failed:', err);
+      setEventSearchResults([]);
+    } finally {
+      setSearchingEvents(false);
+    }
+  };
+
+  const handleClearEventSearch = () => {
+    setEventSearchResults(null);
+    setEventFilters({ query: '', location: '', types: {}, dateRange: 'upcoming', distance: 25 });
   };
 
   const handleViewDetails = async (church: Church) => {
@@ -360,11 +424,29 @@ const App: React.FC = () => {
     userLocation,
   });
 
-  // Event Filter Logic (search by event title, church name, location + filters)
-  const filteredEvents = filterEvents(events, {
-    searchQuery: eventFilters.query,
-    filters: eventFilters,
+  // Process events with distance when user location available
+  const processedEvents = events.map((event) => {
+    const coords = event.coordinates;
+    if (userLocation && coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
+      const dist = calculateDistance(
+        userLocation.lat,
+        userLocation.lng,
+        coords.lat,
+        coords.lng
+      );
+      return { ...event, distance: dist };
+    }
+    return event;
   });
+
+  // Sort events: by distance when available, else by date
+  const sortedEvents = [...processedEvents].sort((a, b) => {
+    if (a.distance != null && b.distance != null) return a.distance - b.distance;
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+
+  // Events shown on Events page: search results if active, else sorted by distance
+  const eventsForPage = eventSearchResults !== null ? eventSearchResults : sortedEvents;
 
   if (loadingUser) {
     return (
@@ -398,7 +480,7 @@ const App: React.FC = () => {
             onToggleFollow={handleToggleFollow}
             followedChurches={followedChurches}
             churches={loadingChurches ? [] : filteredChurches}
-            events={loadingEvents ? [] : filteredEvents}
+            events={loadingEvents ? [] : filterEvents(processedEvents, { searchQuery: eventFilters.query, filters: eventFilters })}
           />
         )}
 
@@ -408,10 +490,14 @@ const App: React.FC = () => {
             setFilters={setFilters}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            churches={loadingChurches ? [] : filteredChurches}
+            churches={loadingChurches ? [] : (searchResults !== null ? searchResults : sortedChurches)}
             onViewDetails={handleViewDetails}
             onToggleFollow={handleToggleFollow}
             followedChurches={followedChurches}
+            onSearchChurches={handleSearchChurches}
+            onClearSearch={handleClearSearch}
+            isSearching={searchingChurches}
+            hasActiveSearch={searchResults !== null}
           />
         )}
 
@@ -452,8 +538,13 @@ const App: React.FC = () => {
           <EventsPage 
             filters={eventFilters}
             setFilters={setEventFilters}
-            events={loadingEvents ? [] : filteredEvents}
+            events={loadingEvents ? [] : eventsForPage}
             onViewEventDetails={handleViewEventDetails}
+            onSearchEvents={handleSearchEvents}
+            onClearSearch={handleClearEventSearch}
+            isSearching={searchingEvents}
+            hasActiveSearch={eventSearchResults !== null}
+            hasUserLocation={!!userLocation}
           />
         )}
 

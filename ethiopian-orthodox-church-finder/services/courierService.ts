@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import type { ChurchEvent } from '../types';
 import { supabase } from '../lib/supabase';
+import { getEventLocationDisplay } from './eventService';
 
 /**
  * Send event notification email via Courier to church mailing list subscribers.
@@ -18,7 +19,7 @@ export async function sendEventNotificationEmail(
     eventName: event.title,
     eventType: event.type,
     description: event.description ?? '',
-    address: event.location ?? '',
+    address: (getEventLocationDisplay(event) || event.location) ?? '',
     churchName: churchName ?? event.churchName ?? '',
     toEmails: toEmails?.length ? toEmails : undefined,
   };

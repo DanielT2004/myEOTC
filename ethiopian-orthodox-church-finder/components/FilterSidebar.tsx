@@ -6,9 +6,11 @@ interface FilterSidebarProps {
   filters: FilterState;
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
   onApply: () => void;
+  onSearch?: () => void;
+  isSearching?: boolean;
 }
 
-export const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, setFilters, onApply }) => {
+export const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, setFilters, onApply, onSearch, isSearching = false }) => {
   const handleServiceChange = (service: string) => {
     setFilters(prev => ({
       ...prev,
@@ -21,7 +23,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, setFilter
 
   return (
     <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm md:sticky md:top-24">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Filters</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-6">Search</h2>
 
       {/* Church name */}
       <div className="mb-6">
@@ -84,10 +86,12 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, setFilter
       </div>
 
       <button
-        onClick={onApply}
-        className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-medium hover:bg-slate-800 transition-colors shadow-sm"
+        type="button"
+        onClick={() => { (onSearch ?? onApply)(); onApply(); }}
+        disabled={isSearching}
+        className="w-full bg-slate-900 text-white px-4 py-2 rounded-md font-medium hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        Apply Filters
+        {isSearching ? 'Searching...' : 'Search'}
       </button>
     </div>
   );

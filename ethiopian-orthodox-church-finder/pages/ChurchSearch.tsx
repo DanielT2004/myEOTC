@@ -14,6 +14,10 @@ interface ChurchSearchProps {
   onViewDetails: (church: Church) => void;
   onToggleFollow: (id: string) => void;
   followedChurches: Set<string>;
+  onSearchChurches?: () => void;
+  onClearSearch?: () => void;
+  isSearching?: boolean;
+  hasActiveSearch?: boolean;
 }
 
 export const ChurchSearch: React.FC<ChurchSearchProps> = ({
@@ -24,7 +28,11 @@ export const ChurchSearch: React.FC<ChurchSearchProps> = ({
   churches,
   onViewDetails,
   onToggleFollow,
-  followedChurches
+  followedChurches,
+  onSearchChurches,
+  onClearSearch,
+  isSearching = false,
+  hasActiveSearch = false,
 }) => {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
@@ -40,13 +48,15 @@ export const ChurchSearch: React.FC<ChurchSearchProps> = ({
             className="md:hidden w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm mb-4 min-h-[44px]"
           >
             {showFiltersMobile ? <X className="h-5 w-5" /> : <SlidersHorizontal className="h-5 w-5" />}
-            {showFiltersMobile ? 'Hide filters' : 'Filters'}
+            {showFiltersMobile ? 'Hide search' : 'Search'}
           </button>
           <div className={`${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
             <FilterSidebar
               filters={filters}
               setFilters={setFilters}
               onApply={() => setShowFiltersMobile(false)}
+              onSearch={onSearchChurches}
+              isSearching={isSearching}
             />
           </div>
         </div>
@@ -54,10 +64,21 @@ export const ChurchSearch: React.FC<ChurchSearchProps> = ({
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 order-1 md:order-2">
            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-4 sm:mb-6 gap-3">
-             <h2 className="text-xl sm:text-2xl font-bold break-words">
-                {searchQuery ? `Results for "${searchQuery}"` : 'All Churches'}
-                <span className="text-sm font-normal text-gray-500 ml-1 sm:ml-2">({churches.length} found)</span>
-             </h2>
+             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+               <h2 className="text-xl sm:text-2xl font-bold break-words">
+                  {hasActiveSearch ? 'Search Results' : 'Churches Near You'}
+                  <span className="text-sm font-normal text-gray-500 ml-1 sm:ml-2">({churches.length} found)</span>
+               </h2>
+               {hasActiveSearch && onClearSearch && (
+                 <button
+                   type="button"
+                   onClick={onClearSearch}
+                   className="text-sm text-blue-600 hover:underline font-medium min-h-[44px] touch-manipulation self-start sm:self-center"
+                 >
+                   Clear search
+                 </button>
+               )}
+             </div>
              
              <div className="flex items-center flex-wrap gap-3 sm:space-x-4 w-full sm:w-auto">
                 <div className="flex bg-gray-100 p-1 rounded-lg flex-shrink-0">
@@ -112,14 +133,18 @@ export const ChurchSearch: React.FC<ChurchSearchProps> = ({
                         ))
                     ) : (
                         <div className="text-center py-20 bg-white rounded-lg border border-gray-200">
-                            <p className="text-gray-500 text-lg">No churches found matching your criteria.</p>
-                            <button 
+                            <p className="text-gray-500 text-lg">
+                              {hasActiveSearch ? 'No churches found matching your search.' : 'No churches found.'}
+                            </p>
+                            {onClearSearch && (
+                              <button 
                                 type="button"
-                                onClick={() => { setSearchQuery(''); setFilters(prev => ({ ...prev, churchName: '', location: '', services: {} })); setShowFiltersMobile(false); }}
+                                onClick={() => { onClearSearch(); setShowFiltersMobile(false); }}
                                 className="mt-4 py-2 text-blue-600 font-medium hover:underline min-h-[44px] touch-manipulation"
-                            >
-                                Clear all filters
-                            </button>
+                              >
+                                Clear search
+                              </button>
+                            )}
                         </div>
                     )}
                 </div>

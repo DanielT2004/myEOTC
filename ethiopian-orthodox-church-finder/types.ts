@@ -36,13 +36,22 @@ export interface ChurchEvent {
   title: string;
   type: string; // e.g., "Holiday", "Bible Study", "Service"
   date: string; // ISO date string
+  /** Full display string: address, city, state zip (or legacy location) */
   location: string;
+  /** Structured address fields for search; when present, location is derived from these */
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  coordinates?: { lat: number; lng: number };
   description: string;
   imageUrl: string;
   churchName?: string; // Optional for aggregate views
   churchId?: string; // To link back to church
   /** When the notification email was sent for this event; undefined/null if not sent yet. Used to gray out "Notify members". */
   notificationSentAt?: string | null;
+  /** Distance in miles from user (computed at runtime for search results) */
+  distance?: number;
 }
 
 export interface ServiceTime {
@@ -99,8 +108,9 @@ export interface FilterState {
 }
 
 export interface EventFilterState {
-  query: string; // search by event title, church name, or event location
-  location: string;
+  query: string; // search by event title or church name
+  location: string; // city, state, or zip for search
   types: Record<string, boolean>;
   dateRange: 'upcoming' | 'thisMonth' | 'thisWeek';
+  distance?: number; // miles (when user location available)
 }

@@ -111,14 +111,22 @@ export function eventMatchesSearch(
 }
 
 /**
- * Returns true if the event matches the location filter (event location string).
+ * Returns true if the event matches the location filter (city, state, zip, address, or location string).
  */
 export function eventMatchesLocationFilter(
   event: ChurchEvent,
   locationFilter: string
 ): boolean {
   if (!locationFilter.trim()) return true;
-  return event.location.toLowerCase().includes(locationFilter.toLowerCase().trim());
+  const loc = locationFilter.toLowerCase().trim();
+  const fields = [
+    event.city,
+    event.state,
+    event.zip,
+    event.address,
+    event.location,
+  ].filter(Boolean) as string[];
+  return fields.some((f) => f.toLowerCase().includes(loc));
 }
 
 /**

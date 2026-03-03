@@ -9,21 +9,43 @@ interface EventsPageProps {
   setFilters: React.Dispatch<React.SetStateAction<EventFilterState>>;
   events: ChurchEvent[];
   onViewEventDetails: (event: ChurchEvent) => void;
+  onSearchEvents?: () => void;
+  onClearSearch?: () => void;
+  isSearching?: boolean;
+  hasActiveSearch?: boolean;
+  hasUserLocation?: boolean;
 }
 
 export const EventsPage: React.FC<EventsPageProps> = ({
   filters,
   setFilters,
   events,
-  onViewEventDetails
+  onViewEventDetails,
+  onSearchEvents,
+  onClearSearch,
+  isSearching = false,
+  hasActiveSearch = false,
+  hasUserLocation = false,
 }) => {
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   return (
      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 min-h-0">
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-8">Community Events Calendar</h1>
+        {hasActiveSearch && onClearSearch && (
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClearSearch}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 font-medium hover:bg-gray-50"
+            >
+              <X className="h-4 w-4" />
+              Clear search
+            </button>
+          </div>
+        )}
         <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-            {/* Event Filters: collapsible on mobile */}
+            {/* Event Search: collapsible on mobile */}
             <div className="w-full md:w-64 flex-shrink-0 order-2 md:order-1">
                 <button
                   type="button"
@@ -31,10 +53,16 @@ export const EventsPage: React.FC<EventsPageProps> = ({
                   className="md:hidden w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm mb-4 min-h-[44px]"
                 >
                   {showFiltersMobile ? <X className="h-5 w-5" /> : <SlidersHorizontal className="h-5 w-5" />}
-                  {showFiltersMobile ? 'Hide filters' : 'Filters'}
+                  {showFiltersMobile ? 'Hide search' : 'Search'}
                 </button>
                 <div className={`${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
-                  <EventFilterSidebar filters={filters} setFilters={setFilters} />
+                  <EventFilterSidebar
+                    filters={filters}
+                    setFilters={setFilters}
+                    onSearch={onSearchEvents}
+                    isSearching={isSearching}
+                    hasUserLocation={hasUserLocation}
+                  />
                 </div>
             </div>
 
@@ -52,13 +80,17 @@ export const EventsPage: React.FC<EventsPageProps> = ({
                         ))
                     ) : (
                         <div className="col-span-full text-center py-20 bg-white rounded-lg border border-gray-200">
-                            <p className="text-gray-500 text-lg">No events found matching your filters.</p>
-                            <button 
-                                onClick={() => { setFilters({ query: '', location: '', types: {}, dateRange: 'upcoming' }); setShowFiltersMobile(false); }}
+                            <p className="text-gray-500 text-lg">
+                              {hasActiveSearch ? 'No events found. Try different search criteria.' : 'No events found. Use search to find events by location, type, or date.'}
+                            </p>
+                            {onClearSearch && (
+                              <button 
+                                onClick={() => { onClearSearch(); setShowFiltersMobile(false); }}
                                 className="mt-4 text-blue-600 font-medium hover:underline"
-                            >
-                                Clear filters
-                            </button>
+                              >
+                                Clear search
+                              </button>
+                            )}
                         </div>
                     )}
                 </div>

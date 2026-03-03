@@ -43,6 +43,10 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
     type: '',
     date: '',
     location: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
     description: '',
     imageUrl: '',
   });
@@ -84,7 +88,11 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
             title: '',
             type: '',
             date: '',
-            location: churchToSelect.address || '',
+            location: '',
+            address: churchToSelect.address || '',
+            city: churchToSelect.city || '',
+            state: churchToSelect.state || '',
+            zip: churchToSelect.zip || '',
             description: '',
             imageUrl: '',
             churchId: churchToSelect.id,
@@ -313,7 +321,11 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
       title: '',
       type: '',
       date: '',
-      location: selectedChurch?.address || '',
+      location: '',
+      address: selectedChurch?.address || '',
+      city: selectedChurch?.city || '',
+      state: selectedChurch?.state || '',
+      zip: selectedChurch?.zip || '',
       description: '',
       imageUrl: '',
       churchId: selectedChurch?.id,
@@ -364,6 +376,22 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
       return;
     }
 
+    const address = (eventForm.address ?? '').trim();
+    const city = (eventForm.city ?? '').trim();
+    const stateVal = (eventForm.state ?? '').trim();
+    const zipVal = (eventForm.zip ?? '').trim();
+    const locationStr = (eventForm.location ?? '').trim();
+    const hasStructured = address && city && stateVal && zipVal;
+    const hasLegacyLocation = !!locationStr;
+    if (!hasStructured && !hasLegacyLocation) {
+      setError('Please provide full address (street, city, state, ZIP).');
+      return;
+    }
+    if (!editingEvent && !hasStructured) {
+      setError('New events require full address (street, city, state, ZIP). Use the pre-filled church address or edit as needed.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -372,7 +400,11 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
         if (eventImage) {
           imageUrl = await storageService.uploadEventImage(eventImage, editingEvent.id);
         }
-        await eventService.updateEvent(editingEvent.id, { ...eventForm, imageUrl });
+        await eventService.updateEvent(editingEvent.id, {
+          ...eventForm,
+          imageUrl,
+          ...(hasStructured ? { address, city, state: stateVal, zip: zipVal, location: undefined } : { location: locationStr, address: undefined, city: undefined, state: undefined, zip: undefined }),
+        });
       } else {
         const created = await eventService.createEvent({
           ...eventForm,
@@ -381,6 +413,7 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
           description,
           date,
           churchId: selectedChurch.id,
+          ...(hasStructured ? { address, city, state: stateVal, zip: zipVal } : { location: locationStr }),
           imageUrl: '',
         });
         let eventToShow = created;
@@ -400,6 +433,10 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
         type: '',
         date: '',
         location: '',
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
         description: '',
         imageUrl: '',
       });
@@ -659,16 +696,64 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                                 <p className="text-xs text-gray-500 mt-1">Only future dates are allowed.</p>
                               </div>
                             </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-                              <input
-                                type="text"
-                                value={eventForm.location || ''}
-                                onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                              />
-                            </div>
+                            {eventForm.address || eventForm.city || eventForm.state || eventForm.zip ? (
+                              <>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+                                  <input
+                                    type="text"
+                                    value={eventForm.address || ''}
+                                    onChange={(e) => setEventForm({ ...eventForm, address: e.target.value })}
+                                    placeholder="Street address"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                                    <input
+                                      type="text"
+                                      value={eventForm.city || ''}
+                                      onChange={(e) => setEventForm({ ...eventForm, city: e.target.value })}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                                    <input
+                                      type="text"
+                                      value={eventForm.state || ''}
+                                      onChange={(e) => setEventForm({ ...eventForm, state: e.target.value })}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">ZIP *</label>
+                                    <input
+                                      type="text"
+                                      value={eventForm.zip || ''}
+                                      onChange={(e) => setEventForm({ ...eventForm, zip: e.target.value })}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    />
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                                <input
+                                  type="text"
+                                  value={eventForm.location || ''}
+                                  onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                                  placeholder="Full address or location (e.g. 123 Main St, City, State 12345)"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">For better searchability, switch to address fields by adding address, city, state, and ZIP.</p>
+                              </div>
+                            )}
+                            {selectedChurch && (eventForm.address || eventForm.city) && (
+                              <p className="text-xs text-gray-500 -mt-2">Pre-filled from your church. Edit if the event is at a different location.</p>
+                            )}
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
                               <textarea
@@ -726,6 +811,10 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                                     type: '',
                                     date: '',
                                     location: '',
+                                    address: '',
+                                    city: '',
+                                    state: '',
+                                    zip: '',
                                     description: '',
                                     imageUrl: '',
                                   });

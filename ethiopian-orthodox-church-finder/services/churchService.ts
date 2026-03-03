@@ -64,6 +64,92 @@ const transformChurchForDb = (church: Partial<Church>): any => {
 };
 
 export const churchService = {
+  /**
+   * Search approved churches by name, location, services, and optionally distance.
+   * Only non-empty criteria are applied. Blank fields are ignored.
+   */
+  async searchChurches(params: {
+    churchName?: string;
+    location?: string;
+    distance?: number;
+    services?: string[];
+    userLocation?: { lat: number; lng: number } | null;
+  }): Promise<Church[]> {
+    try {
+      let query = supabase
+        .from('churches')
+        .select('*')
+        .eq('status', 'approved');
+
+      if (params.churchName?.trim()) {
+        query = query.ilike('name', `%${params.churchName.trim()}%`);
+      }
+
+      if (params.location?.trim()) {
+        const loc = params.location.trim();
+        query = query.or(`city.ilike.*${loc}*,state.ilike.*${loc}*,zip.ilike.*${loc}*`);
+      }
+
+      const { data, error } = await query.order('name');
+
+      if (error) {
+        console.error('Error searching churches:', error);
+        if (error.message?.includes('Invalid API key') || error.message?.includes('JWT')) {
+          return [];
+        }
+        throw error;
+      }
+
+      let results = (data || []).map(transformChurch);
+
+      // Filter by services client-side (array overlap)
+      if (params.services && params.services.length > 0) {
+        results = results.filter((church) =>
+          params.services!.some((s) => church.services?.includes(s))
+        );
+      }
+
+      // Filter by distance client-side (requires userLocation and church coordinates)
+      if (
+        params.distance != null &&
+        params.userLocation &&
+        results.length > 0
+      ) {
+        const { calculateDistance } = await import('../utils/distance');
+        results = results
+          .map((church) => {
+            const dist = calculateDistance(
+              params.userLocation!.lat,
+              params.userLocation!.lng,
+              church.coordinates.lat,
+              church.coordinates.lng
+            );
+            return { ...church, distance: dist };
+          })
+          .filter((church) => church.distance! <= params.distance!)
+          .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+      } else if (params.userLocation && results.length > 0) {
+        const { calculateDistance } = await import('../utils/distance');
+        results = results
+          .map((church) => {
+            const dist = calculateDistance(
+              params.userLocation!.lat,
+              params.userLocation!.lng,
+              church.coordinates.lat,
+              church.coordinates.lng
+            );
+            return { ...church, distance: dist };
+          })
+          .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+      }
+
+      return results;
+    } catch (error: any) {
+      console.error('Error in searchChurches:', error);
+      return [];
+    }
+  },
+
   // Get all approved churches (public)
   async getApprovedChurches(): Promise<Church[]> {
     try {

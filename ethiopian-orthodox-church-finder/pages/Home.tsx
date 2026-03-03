@@ -49,7 +49,7 @@ export const Home: React.FC<HomeProps> = ({
              </button>
           </div>
           
-          <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0 overflow-hidden max-w-[100vw] sm:max-w-none">
             <div className="flex overflow-x-auto overflow-y-hidden pb-4 sm:pb-6 gap-4 sm:gap-6 scrollbar-hide scroll-touch snap-x snap-proximity">
             {featuredChurches.length === 0 ? (
               <div className="min-w-full text-center py-12 text-gray-500">
@@ -82,7 +82,7 @@ export const Home: React.FC<HomeProps> = ({
                View Calendar &rarr;
              </button>
           </div>
-          <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0 overflow-hidden max-w-[100vw] sm:max-w-none">
             <div className="flex overflow-x-auto overflow-y-hidden pb-4 sm:pb-6 gap-4 sm:gap-6 scrollbar-hide scroll-touch snap-x snap-proximity">
             {featuredEvents.length === 0 ? (
               <div className="min-w-full text-center py-12 text-gray-500">

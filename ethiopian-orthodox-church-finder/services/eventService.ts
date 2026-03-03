@@ -4,14 +4,34 @@ import { ChurchEvent } from '../types';
 /** ISO string for "now" (start of current moment) for filtering upcoming events. */
 const nowISO = () => new Date().toISOString();
 
-// Transform database event to app event format
+/** Build display location string from structured fields or legacy location. */
+export function getEventLocationDisplay(event: { address?: string; city?: string; state?: string; zip?: string; location?: string }): string {
+  if (event.address || event.city || event.state || event.zip) {
+    const parts = [event.address, event.city, [event.state, event.zip].filter(Boolean).join(' ')].filter(Boolean);
+    return parts.join(', ');
+  }
+  return event.location ?? '';
+}
+
+// Transform database event to app event format (location is computed from address fields)
 const transformEvent = (dbEvent: any, churchName?: string): ChurchEvent => {
+  const location = getEventLocationDisplay({
+    address: dbEvent.address,
+    city: dbEvent.city,
+    state: dbEvent.state,
+    zip: dbEvent.zip,
+  });
   return {
     id: dbEvent.id,
     title: dbEvent.title,
     type: dbEvent.type,
     date: dbEvent.date,
-    location: dbEvent.location,
+    location,
+    address: dbEvent.address,
+    city: dbEvent.city,
+    state: dbEvent.state,
+    zip: dbEvent.zip,
+    coordinates: dbEvent.coordinates,
     description: dbEvent.description,
     imageUrl: dbEvent.image_url || '',
     churchId: dbEvent.church_id,
@@ -20,13 +40,17 @@ const transformEvent = (dbEvent: any, churchName?: string): ChurchEvent => {
   };
 };
 
-// Transform app event to database format
+// Transform app event to database format (no location column - use address, city, state, zip only)
 const transformEventForDb = (event: Partial<ChurchEvent>): any => {
   return {
     title: event.title,
     type: event.type,
     date: event.date,
-    location: event.location,
+    address: event.address,
+    city: event.city,
+    state: event.state,
+    zip: event.zip,
+    coordinates: event.coordinates,
     description: event.description,
     image_url: event.imageUrl,
     church_id: event.churchId,
@@ -53,7 +77,12 @@ export const eventService = {
           *,
           churches!inner (
             name,
-            status
+            status,
+            coordinates,
+            address,
+            city,
+            state,
+            zip
           )
         `)
         .eq('churches.status', 'approved')
@@ -68,12 +97,129 @@ export const eventService = {
         }
         throw error;
       }
-      return (data || []).map((item: any) => 
-        transformEvent(item, item.churches?.name)
-      );
+      return (data || []).map((item: any) => {
+        const event = transformEvent(item, item.churches?.name);
+        // Use church coordinates for distance when event has none
+        if (!event.coordinates && item.churches?.coordinates) {
+          event.coordinates = item.churches.coordinates;
+        }
+        return event;
+      });
     } catch (error: any) {
       console.error('Error in getAllEvents:', error);
       // Return empty array on any error to prevent app crash
+      return [];
+    }
+  },
+
+  /**
+   * Search events by query, location (city/state/zip), types, date range, and optionally distance.
+   * Joins with churches for coordinates and approved status.
+   */
+  async searchEvents(params: {
+    query?: string;
+    location?: string;
+    distance?: number;
+    types?: string[];
+    dateRange?: 'upcoming' | 'thisMonth' | 'thisWeek';
+    userLocation?: { lat: number; lng: number } | null;
+  }): Promise<ChurchEvent[]> {
+    try {
+      let query = supabase
+        .from('events')
+        .select(`
+          *,
+          churches!inner (
+            name,
+            status,
+            coordinates,
+            address,
+            city,
+            state,
+            zip
+          )
+        `)
+        .eq('churches.status', 'approved')
+        .gte('date', nowISO())
+        .order('date', { ascending: true });
+
+      if (params.location?.trim()) {
+        const loc = params.location.trim();
+        query = query.or(`city.ilike.%${loc}%,state.ilike.%${loc}%,zip.ilike.%${loc}%,address.ilike.%${loc}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error searching events:', error);
+        if (error.message?.includes('Invalid API key') || error.message?.includes('JWT')) {
+          return [];
+        }
+        throw error;
+      }
+
+      let results = (data || []).map((item: any) => {
+        const event = transformEvent(item, item.churches?.name);
+        if (!event.coordinates && item.churches?.coordinates) {
+          event.coordinates = item.churches.coordinates;
+        }
+        return event;
+      });
+
+      if (params.query?.trim()) {
+        const q = params.query.trim().toLowerCase();
+        results = results.filter(
+          (e) =>
+            e.title.toLowerCase().includes(q) ||
+            (e.churchName ?? '').toLowerCase().includes(q)
+        );
+      }
+
+      if (params.types && params.types.length > 0) {
+        results = results.filter((e) => params.types!.includes(e.type));
+      }
+
+      if (params.dateRange && params.dateRange !== 'upcoming') {
+        const now = new Date();
+        if (params.dateRange === 'thisWeek') {
+          const nextWeek = new Date();
+          nextWeek.setDate(now.getDate() + 7);
+          results = results.filter((e) => {
+            const d = new Date(e.date);
+            return d >= now && d <= nextWeek;
+          });
+        } else if (params.dateRange === 'thisMonth') {
+          const nextMonth = new Date();
+          nextMonth.setDate(now.getDate() + 30);
+          results = results.filter((e) => {
+            const d = new Date(e.date);
+            return d >= now && d <= nextMonth;
+          });
+        }
+      }
+
+      const { calculateDistance } = await import('../utils/distance');
+      const ul = params.userLocation;
+
+      if (ul && results.length > 0) {
+        results = results
+          .map((e) => {
+            const coords = e.coordinates;
+            const dist = coords && typeof coords?.lat === 'number' && typeof coords?.lng === 'number'
+              ? calculateDistance(ul.lat, ul.lng, coords.lat, coords.lng)
+              : undefined;
+            return { ...e, distance: dist };
+          })
+          .filter((e) => {
+            if (params.distance == null) return true;
+            return e.distance != null && e.distance <= params.distance!;
+          })
+          .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+      }
+
+      return results;
+    } catch (error: any) {
+      console.error('Error in searchEvents:', error);
       return [];
     }
   },
