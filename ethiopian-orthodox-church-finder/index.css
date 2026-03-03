@@ -29,12 +29,11 @@ body {
   overflow-x: hidden;
 }
 
-/* Touch-friendly horizontal scroll (iOS Safari, etc.) */
+/* Touch-friendly scroll helpers
+   NOTE: Avoid restricting touch-action here so vertical page scrolling
+   still works when starting a gesture over horizontal carousels. */
 .scroll-touch {
   -webkit-overflow-scrolling: touch;
-  overflow-x: auto;
-  overflow-y: hidden;
-  touch-action: pan-x;
 }
 
 .scroll-touch-y {
