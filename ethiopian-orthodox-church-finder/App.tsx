@@ -190,9 +190,12 @@ const App: React.FC = () => {
           navigate('/search', { replace: true });
           return;
         }
-        const churchEvents = await eventService.getEventsForChurch(church.id).catch(() => []);
-        const churchWithEvents = { ...church, events: churchEvents };
-        setSelectedChurch(churchWithEvents);
+        const [churchEvents, clergy] = await Promise.all([
+          eventService.getEventsForChurch(church.id).catch(() => []),
+          churchService.getClergyForChurch(church.id),
+        ]);
+        const churchWithEventsAndClergy = { ...church, events: churchEvents, clergy };
+        setSelectedChurch(churchWithEventsAndClergy);
         if (user && church) {
           const isAdmin = await churchService.isUserAdminOfChurch(user.id, church.id);
           setIsAdminOfSelectedChurch(isAdmin);
@@ -340,11 +343,14 @@ const App: React.FC = () => {
 
   const handleViewDetails = async (church: Church) => {
     try {
-      const churchEvents = await eventService.getEventsForChurch(church.id);
-      const churchWithEvents = { ...church, events: churchEvents };
-      setSelectedChurch(churchWithEvents);
+      const [churchEvents, clergy] = await Promise.all([
+        eventService.getEventsForChurch(church.id).catch(() => []),
+        churchService.getClergyForChurch(church.id),
+      ]);
+      const churchWithEventsAndClergy = { ...church, events: churchEvents, clergy };
+      setSelectedChurch(churchWithEventsAndClergy);
     } catch (error) {
-      console.error('Error loading events for church:', error);
+      console.error('Error loading church details:', error);
       setSelectedChurch(church);
     }
     if (user) {

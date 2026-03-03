@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Church, ChurchEvent } from '../types';
-import { MapPin, Phone, ArrowLeft, CheckCircle, CreditCard, Calendar, Clock, Globe, Info, Accessibility, Car, BookOpen, Edit, Plus, AlertCircle, Bell } from 'lucide-react';
+import { MapPin, Phone, ArrowLeft, CheckCircle, CreditCard, Calendar, Clock, Globe, Accessibility, Car, BookOpen, Edit, Plus, AlertCircle, Bell } from 'lucide-react';
 import { EventCard } from './EventCard';
 import { NotifyMembersConfirmModal } from './NotifyMembersConfirmModal';
 import { SubscribeModal } from './SubscribeModal';
@@ -243,16 +243,6 @@ export const ChurchDetail: React.FC<ChurchDetailProps> = ({ church, onBack, onVi
                         <div className="flex items-center text-gray-600 text-sm sm:text-base">
                             <Phone className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 flex-shrink-0" />
                             <span>{church.phone}</span>
-                        </div>
-                        
-                        <hr className="border-gray-100 my-2" />
-                        
-                         <div className="flex items-start text-gray-600 text-sm sm:text-base">
-                            <Info className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <span className="block text-[10px] sm:text-xs font-bold uppercase text-gray-400">Parish Size</span>
-                                <span>{church.members} Members</span>
-                            </div>
                         </div>
                     </div>
                 </div>

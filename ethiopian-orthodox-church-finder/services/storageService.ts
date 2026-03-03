@@ -78,6 +78,26 @@ export const storageService = {
     return urlData.publicUrl;
   },
 
+  // Upload clergy member photo (optional)
+  async uploadClergyImage(file: File, churchId: string, clergyIdOrIndex: string): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${churchId}/clergy/${clergyIdOrIndex}.${fileExt}`;
+    const filePath = `church-images/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('church-images')
+      .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+    if (uploadError) {
+      console.error('[StorageService] Clergy image upload error:', uploadError);
+      throw new Error('Failed to upload clergy photo. Please try again.');
+    }
+
+    const { data: urlData } = supabase.storage.from('church-images').getPublicUrl(filePath);
+    if (!urlData?.publicUrl) throw new Error('Failed to get clergy photo URL.');
+    return urlData.publicUrl;
+  },
+
   // Upload event image
   async uploadEventImage(file: File, eventId: string): Promise<string> {
     const fileExt = file.name.split('.').pop();

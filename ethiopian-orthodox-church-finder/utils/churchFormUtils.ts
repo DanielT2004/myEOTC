@@ -1,5 +1,5 @@
 import { Church, ServiceTime } from '../types';
-import { ServiceScheduleItem, ChurchFormData } from '../components/ChurchFormFields';
+import { ServiceScheduleItem, ChurchFormData, ClergyFormItem } from '../components/ChurchFormFields';
 import { SPECIAL_PROGRAMS, LANGUAGES } from '../constants';
 
 /**
@@ -84,6 +84,13 @@ export const churchToFormData = (church: Church): ChurchFormData => {
     langsObj[lang] = church.languages?.includes(lang) || false;
   });
   
+  const clergy: ClergyFormItem[] = (church.clergy || []).map((c) => ({
+    id: c.id,
+    name: c.name || '',
+    role: c.role || '',
+    imageUrl: c.imageUrl || '',
+  }));
+
   return {
     name: church.name || '',
     address: church.address || '',
@@ -94,6 +101,7 @@ export const churchToFormData = (church: Church): ChurchFormData => {
     description: church.description || '',
     imageUrl: church.imageUrl || '',
     serviceSchedule: transformedSchedule,
+    clergy,
     specialPrograms: programsObj,
     languages: langsObj,
     features: church.features || {
@@ -159,6 +167,7 @@ export const createEmptyFormData = (): ChurchFormData => {
     description: '',
     imageUrl: '',
     serviceSchedule: [{ day: 'Sunday', startTime: '', endTime: '', description: '', repeat: 'Every Week' }],
+    clergy: [],
     specialPrograms: {},
     languages: {},
     features: {

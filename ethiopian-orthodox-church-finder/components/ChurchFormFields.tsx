@@ -11,6 +11,14 @@ export interface ServiceScheduleItem {
   repeat: string;
 }
 
+/** Clergy row in the church form (id optional for new entries). */
+export interface ClergyFormItem {
+  id?: string;
+  name: string;
+  role: string;
+  imageUrl: string;
+}
+
 export interface ChurchFormData {
   name: string;
   address: string;
@@ -21,6 +29,7 @@ export interface ChurchFormData {
   description: string;
   imageUrl?: string;
   serviceSchedule: ServiceScheduleItem[];
+  clergy: ClergyFormItem[];
   specialPrograms: Record<string, boolean>;
   languages: Record<string, boolean>;
   features: {
@@ -41,6 +50,10 @@ interface ChurchFormFieldsProps {
   onAddServiceTime: () => void;
   onRemoveServiceTime: (index: number) => void;
   onUpdateServiceTime: (index: number, field: keyof ServiceScheduleItem, value: string) => void;
+  onAddClergy: () => void;
+  onRemoveClergy: (index: number) => void;
+  onUpdateClergy: (index: number, field: keyof ClergyFormItem, value: string) => void;
+  onClergyImageChange?: (index: number, file: File | null) => void;
   showImageUpload?: boolean;
 }
 
@@ -54,6 +67,10 @@ export const ChurchFormFields: React.FC<ChurchFormFieldsProps> = ({
   onAddServiceTime,
   onRemoveServiceTime,
   onUpdateServiceTime,
+  onAddClergy,
+  onRemoveClergy,
+  onUpdateClergy,
+  onClergyImageChange,
   showImageUpload = true,
 }) => {
   return (
@@ -279,6 +296,108 @@ export const ChurchFormFields: React.FC<ChurchFormFieldsProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                   placeholder="e.g., Divine Liturgy, Bible Study, etc."
                 />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Clergy */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <label className="block text-sm font-medium text-gray-700">Clergy (optional)</label>
+          <button
+            type="button"
+            onClick={onAddClergy}
+            className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+          >
+            <Plus size={16} />
+            Add Clergy
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">Add clergy members with name, role, and optional photo.</p>
+        <div className="space-y-4">
+          {formData.clergy.map((member, index) => (
+            <div key={member.id ?? `new-${index}`} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="flex flex-wrap items-start gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-w-0">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={member.name}
+                      onChange={(e) => onUpdateClergy(index, 'name', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="e.g., Abba Gebre Selassie"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                    <input
+                      type="text"
+                      value={member.role}
+                      onChange={(e) => onUpdateClergy(index, 'role', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="e.g., Head Priest, Deacon"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-end h-[34px]">
+                  <button
+                    type="button"
+                    onClick={() => onRemoveClergy(index)}
+                    className="p-2 text-red-600 hover:bg-red-50 border border-red-200 rounded-md transition-colors"
+                    title="Remove clergy"
+                    aria-label="Remove clergy"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Photo (optional)</label>
+                <div className="flex items-center gap-3">
+                  {member.imageUrl ? (
+                    <div className="flex items-center gap-2">
+                      <img src={member.imageUrl} alt={member.name || 'Clergy'} className="h-14 w-14 rounded-full object-cover border border-gray-200" />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-gray-500">Current photo</span>
+                        {onClergyImageChange && (
+                          <label className="text-xs text-blue-600 hover:text-blue-700 cursor-pointer">
+                            <input
+                              type="file"
+                              className="sr-only"
+                              accept=".png,.jpg,.jpeg,.webp"
+                              onChange={(e) => onClergyImageChange(index, e.target.files?.[0] ?? null)}
+                            />
+                            Replace
+                          </label>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateClergy(index, 'imageUrl', '');
+                            onClergyImageChange?.(index, null);
+                          }}
+                          className="text-xs text-red-600 hover:text-red-700 text-left"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                      <Upload className="h-4 w-4" />
+                      <input
+                        type="file"
+                        className="sr-only"
+                        accept=".png,.jpg,.jpeg,.webp"
+                        onChange={(e) => onClergyImageChange?.(index, e.target.files?.[0] ?? null)}
+                      />
+                      Upload photo (optional)
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
           ))}

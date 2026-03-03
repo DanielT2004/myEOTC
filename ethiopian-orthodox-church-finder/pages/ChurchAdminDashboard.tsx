@@ -7,7 +7,7 @@ import { storageService } from '../services/storageService';
 import { geocodingService } from '../services/geocodingService';
 import { Church, ChurchEvent } from '../types';
 import { EVENT_TYPES } from '../constants';
-import { ChurchFormFields, ChurchFormData } from '../components/ChurchFormFields';
+import { ChurchFormFields, ChurchFormData, ClergyFormItem } from '../components/ChurchFormFields';
 import { churchToFormData, formDataToChurch } from '../utils/churchFormUtils';
 import { canShowEventsSectionInAdminDashboard } from '../utils/churchVisibility';
 import { NotifyMembersConfirmModal } from '../components/NotifyMembersConfirmModal';
@@ -36,6 +36,8 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
   const [churchImage, setChurchImage] = useState<File | null>(null);
   const [churchImagePreview, setChurchImagePreview] = useState<string>('');
   const [geocoding, setGeocoding] = useState(false);
+  /** Parallel to formData.clergy: File to upload for new/replaced clergy photo, or null */
+  const [clergyImageFiles, setClergyImageFiles] = useState<(File | null)[]>([]);
 
   // Event form state
   const [eventForm, setEventForm] = useState<Partial<ChurchEvent>>({
@@ -103,8 +105,12 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
           setShowEventForm(true);
         } else if (initialChurchId) {
           // If initialChurchId is provided and we're not showing event form, start edit mode
-          const formData = churchToFormData(churchToSelect);
+          const clergy = await churchService.getClergyForChurch(churchToSelect.id);
+          const churchWithClergy = { ...churchToSelect, clergy };
+          setSelectedChurch(churchWithClergy);
+          const formData = churchToFormData(churchWithClergy);
           setChurchFormData(formData);
+          setClergyImageFiles(formData.clergy.map(() => null));
           if (churchToSelect.imageUrl) {
             setChurchImagePreview(churchToSelect.imageUrl);
           } else {
@@ -145,20 +151,25 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
     await loadEvents(church.id);
   };
 
-  const handleStartEditChurch = () => {
-    if (selectedChurch) {
-      const formData = churchToFormData(selectedChurch);
+  const handleStartEditChurch = async () => {
+    if (!selectedChurch) return;
+    try {
+      const clergy = await churchService.getClergyForChurch(selectedChurch.id);
+      const churchWithClergy = { ...selectedChurch, clergy };
+      setSelectedChurch(churchWithClergy);
+      const formData = churchToFormData(churchWithClergy);
       setChurchFormData(formData);
-      
-      // Set image preview if exists
+      setClergyImageFiles(formData.clergy.map(() => null));
+
       if (selectedChurch.imageUrl) {
         setChurchImagePreview(selectedChurch.imageUrl);
       } else {
         setChurchImagePreview('');
       }
       setChurchImage(null);
-      
       setEditingChurch(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load church details');
     }
   };
 
@@ -208,6 +219,56 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
     const updated = [...churchFormData.serviceSchedule];
     updated[index] = { ...updated[index], [field]: value };
     setChurchFormData({ ...churchFormData, serviceSchedule: updated });
+  };
+
+  const handleAddClergy = () => {
+    if (!churchFormData) return;
+    setChurchFormData({
+      ...churchFormData,
+      clergy: [...churchFormData.clergy, { name: '', role: '', imageUrl: '' }],
+    });
+    setClergyImageFiles([...clergyImageFiles, null]);
+  };
+
+  const handleRemoveClergy = async (index: number) => {
+    if (!churchFormData) return;
+    const member = churchFormData.clergy[index];
+    if (member?.id) {
+      try {
+        await churchService.deleteClergyMember(member.id);
+        setSelectedChurch((prev) =>
+          prev ? { ...prev, clergy: prev.clergy.filter((c) => c.id !== member.id) } : null
+        );
+      } catch (err: any) {
+        setError(err.message || 'Failed to remove clergy from database');
+        return;
+      }
+    }
+    setChurchFormData({
+      ...churchFormData,
+      clergy: churchFormData.clergy.filter((_, i) => i !== index),
+    });
+    setClergyImageFiles(clergyImageFiles.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateClergy = (index: number, field: keyof ClergyFormItem, value: string) => {
+    if (!churchFormData) return;
+    const updated = [...churchFormData.clergy];
+    updated[index] = { ...updated[index], [field]: value };
+    setChurchFormData({ ...churchFormData, clergy: updated });
+  };
+
+  const handleClergyImageChange = (index: number, file: File | null) => {
+    setClergyImageFiles((prev) => {
+      const next = [...prev];
+      next[index] = file;
+      return next;
+    });
+    if (!churchFormData) return;
+    const previewUrl = file ? URL.createObjectURL(file) : '';
+    const updated = [...churchFormData.clergy];
+    updated[index] = { ...updated[index], imageUrl: previewUrl };
+    setChurchFormData({ ...churchFormData, clergy: updated });
   };
 
   const handleSaveChurch = async () => {
@@ -292,16 +353,58 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
       const updated = await churchService.updateChurch(selectedChurch.id, updateData);
       setSelectedChurch(updated);
       setChurches(churches.map(c => c.id === updated.id ? updated : c));
-      
-      // Notify parent component to update its churches state
-      if (onChurchUpdated) {
-        onChurchUpdated(updated);
+
+      // Sync clergy: delete removed, update existing (name/role/photo), add new
+      const formClergyIds = new Set(churchFormData.clergy.filter((c) => c.id).map((c) => c.id!));
+      const existingIds = (selectedChurch.clergy || []).map((c) => c.id);
+      for (const id of existingIds) {
+        if (!formClergyIds.has(id)) {
+          await churchService.deleteClergyMember(id);
+        }
       }
-      
+      for (let i = 0; i < churchFormData.clergy.length; i++) {
+        const member = churchFormData.clergy[i];
+        const file = clergyImageFiles[i];
+        let imageUrl = member.imageUrl || '';
+        // Only use existing imageUrl if it's a real URL (http/https), not a blob from preview
+        if (imageUrl.startsWith('blob:')) imageUrl = '';
+        if (file) {
+          try {
+            const uniqueKey = member.id ?? `new-${crypto.randomUUID()}`;
+            imageUrl = await storageService.uploadClergyImage(file, selectedChurch.id, uniqueKey);
+          } catch (e) {
+            console.warn('Clergy image upload failed:', e);
+          }
+        }
+        if (member.id) {
+          await churchService.updateClergyMember(member.id, {
+            name: member.name?.trim() || '',
+            role: member.role?.trim() || '',
+            imageUrl,
+          });
+        } else {
+          if (!member.name?.trim() && !member.role?.trim()) continue;
+          await churchService.addClergyMember(selectedChurch.id, {
+            name: member.name?.trim() || '',
+            role: member.role?.trim() || '',
+            imageUrl,
+          });
+        }
+      }
+      const clergyAfter = await churchService.getClergyForChurch(selectedChurch.id);
+      const updatedWithClergy = { ...updated, clergy: clergyAfter };
+      setSelectedChurch(updatedWithClergy);
+      setChurches(churches.map(c => c.id === updated.id ? updatedWithClergy : c));
+
+      if (onChurchUpdated) {
+        onChurchUpdated(updatedWithClergy);
+      }
+
       setEditingChurch(false);
       setChurchImage(null);
       setChurchImagePreview('');
       setChurchFormData(null);
+      setClergyImageFiles([]);
     } catch (err: any) {
       setError(err.message || 'Failed to update church');
     } finally {
@@ -314,6 +417,7 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
     setChurchFormData(null);
     setChurchImage(null);
     setChurchImagePreview('');
+    setClergyImageFiles([]);
   };
 
   const handleStartAddEvent = () => {
@@ -590,6 +694,10 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
                     onAddServiceTime={handleAddServiceTime}
                     onRemoveServiceTime={handleRemoveServiceTime}
                     onUpdateServiceTime={handleUpdateServiceTime}
+                    onAddClergy={handleAddClergy}
+                    onRemoveClergy={handleRemoveClergy}
+                    onUpdateClergy={handleUpdateClergy}
+                    onClergyImageChange={handleClergyImageChange}
                     showImageUpload={true}
                   />
 

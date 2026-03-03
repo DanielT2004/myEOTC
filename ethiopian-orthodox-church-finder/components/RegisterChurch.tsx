@@ -51,6 +51,8 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
   const [serviceSchedule, setServiceSchedule] = useState<ServiceScheduleItem[]>([
     { day: 'Sunday', startTime: '', endTime: '', description: '', repeat: 'Every Week' }
   ]);
+  const [clergy, setClergy] = useState<Array<{ name: string; role: string; imageUrl: string }>>([]);
+  const [clergyImageFiles, setClergyImageFiles] = useState<(File | null)[]>([]);
   const [specialPrograms, setSpecialPrograms] = useState<Record<string, boolean>>({});
   const [languages, setLanguages] = useState<Record<string, boolean>>({});
   const [features, setFeatures] = useState({
@@ -124,6 +126,34 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
     const updated = [...serviceSchedule];
     updated[index] = { ...updated[index], [field]: value };
     setServiceSchedule(updated);
+  };
+
+  const addClergy = () => {
+    setClergy([...clergy, { name: '', role: '', imageUrl: '' }]);
+    setClergyImageFiles([...clergyImageFiles, null]);
+  };
+
+  const removeClergy = (index: number) => {
+    setClergy(clergy.filter((_, i) => i !== index));
+    setClergyImageFiles(clergyImageFiles.filter((_, i) => i !== index));
+  };
+
+  const updateClergy = (index: number, field: 'name' | 'role' | 'imageUrl', value: string) => {
+    const updated = [...clergy];
+    updated[index] = { ...updated[index], [field]: value };
+    setClergy(updated);
+  };
+
+  const clergyImageChange = (index: number, file: File | null) => {
+    setClergyImageFiles((prev) => {
+      const next = [...prev];
+      next[index] = file;
+      return next;
+    });
+    const previewUrl = file ? URL.createObjectURL(file) : '';
+    const updated = [...clergy];
+    updated[index] = { ...updated[index], imageUrl: previewUrl };
+    setClergy(updated);
   };
 
   const handleNext = () => {
@@ -318,6 +348,26 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
           // The church was already created successfully
           console.warn('[RegisterChurch] Church created but image re-upload failed. Church ID:', church.id);
         }
+      }
+
+      // Add clergy members (optional)
+      for (let i = 0; i < clergy.length; i++) {
+        const member = clergy[i];
+        if (!member.name?.trim() && !member.role?.trim()) continue;
+        let imageUrl = '';
+        const file = clergyImageFiles[i];
+        if (file) {
+          try {
+            imageUrl = await storageService.uploadClergyImage(file, church.id, `new-${crypto.randomUUID()}`);
+          } catch (e) {
+            console.warn('[RegisterChurch] Clergy image upload failed:', e);
+          }
+        }
+        await churchService.addClergyMember(church.id, {
+          name: member.name?.trim() || '',
+          role: member.role?.trim() || '',
+          imageUrl,
+        });
       }
 
       // Update admin profile with phone if provided
@@ -755,6 +805,99 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-slate-500 focus:border-slate-500"
                           placeholder="e.g., Divine Liturgy, Bible Study, etc."
                         />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clergy (optional) */}
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-medium text-gray-700">Clergy (optional)</label>
+                  <button
+                    type="button"
+                    onClick={addClergy}
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Plus size={16} />
+                    Add Clergy
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">Add clergy members with name, role, and optional photo.</p>
+                <div className="space-y-4">
+                  {clergy.map((member, index) => (
+                    <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={member.name}
+                            onChange={(e) => updateClergy(index, 'name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            placeholder="e.g., Abba Gebre Selassie"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                          <input
+                            type="text"
+                            value={member.role}
+                            onChange={(e) => updateClergy(index, 'role', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            placeholder="e.g., Head Priest, Deacon"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Photo (optional)</label>
+                        <div className="flex items-center gap-3">
+                          {member.imageUrl ? (
+                            <div className="flex items-center gap-2">
+                              <img src={member.imageUrl} alt={member.name || 'Clergy'} className="h-14 w-14 rounded-full object-cover border border-gray-200" />
+                              <div className="flex flex-col gap-1">
+                                <label className="text-xs text-blue-600 hover:text-blue-700 cursor-pointer">
+                                  <input
+                                    type="file"
+                                    className="sr-only"
+                                    accept=".png,.jpg,.jpeg,.webp"
+                                    onChange={(e) => clergyImageChange(index, e.target.files?.[0] ?? null)}
+                                  />
+                                  Replace
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => clergyImageChange(index, null)}
+                                  className="text-xs text-red-600 hover:text-red-700 text-left"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                              <Upload className="h-4 w-4" />
+                              <input
+                                type="file"
+                                className="sr-only"
+                                accept=".png,.jpg,.jpeg,.webp"
+                                onChange={(e) => clergyImageChange(index, e.target.files?.[0] ?? null)}
+                              />
+                              Upload photo (optional)
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => removeClergy(index)}
+                          className="px-3 py-2 text-red-600 hover:bg-red-50 border border-red-200 rounded-md text-sm flex items-center gap-1"
+                        >
+                          <Trash2 size={14} />
+                          Remove clergy
+                        </button>
                       </div>
                     </div>
                   ))}

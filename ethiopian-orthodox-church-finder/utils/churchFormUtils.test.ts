@@ -203,6 +203,7 @@ describe('formDataToChurch', () => {
           repeat: 'Every Week',
         },
       ],
+      clergy: [],
       specialPrograms: { 'Bible Study': true, 'Choir': false },
       languages: { 'English': true, 'Amharic': false },
       features: {
@@ -278,6 +279,11 @@ describe('createEmptyFormData', () => {
     expect(empty.serviceSchedule[0].startTime).toBe('');
     expect(empty.serviceSchedule[0].endTime).toBe('');
     expect(empty.serviceSchedule[0].repeat).toBe('Every Week');
+  });
+
+  it('returns empty clergy array', () => {
+    const empty = createEmptyFormData();
+    expect(empty.clergy).toEqual([]);
   });
 });
 

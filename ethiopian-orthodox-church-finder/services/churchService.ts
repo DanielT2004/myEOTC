@@ -541,6 +541,37 @@ export const churchService = {
     };
   },
 
+  // Update clergy member (e.g. photo)
+  async updateClergyMember(clergyId: string, updates: { name?: string; role?: string; imageUrl?: string }): Promise<ClergyMember> {
+    const body: any = {};
+    if (updates.name !== undefined) body.name = updates.name;
+    if (updates.role !== undefined) body.role = updates.role;
+    if (updates.imageUrl !== undefined) body.image_url = updates.imageUrl;
+    if (Object.keys(body).length === 0) {
+      const existing = await supabase.from('clergy_members').select('*').eq('id', clergyId).single();
+      if (existing.error) throw existing.error;
+      return {
+        id: existing.data.id,
+        name: existing.data.name,
+        role: existing.data.role,
+        imageUrl: existing.data.image_url || '',
+      };
+    }
+    const { data, error } = await supabase
+      .from('clergy_members')
+      .update(body)
+      .eq('id', clergyId)
+      .select()
+      .single();
+    if (error) throw error;
+    return {
+      id: data.id,
+      name: data.name,
+      role: data.role,
+      imageUrl: data.image_url || '',
+    };
+  },
+
   // Delete clergy member
   async deleteClergyMember(clergyId: string): Promise<void> {
     const { error } = await supabase
