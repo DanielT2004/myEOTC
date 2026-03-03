@@ -274,12 +274,22 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
   const handleSaveChurch = async () => {
     if (!selectedChurch || !churchFormData) return;
 
+    // Snapshot clergy at save start so we always have the correct previous image URLs (React state may update during async work).
+    const clergySnapshot = selectedChurch.clergy ?? [];
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:handleSaveChurch:entry',message:'Save church started',data:{clergyCount:churchFormData?.clergy?.length??0,clergyImageFilesCount:clergyImageFiles.length,hasAnyFile:clergyImageFiles.some(f=>!!f)},timestamp:Date.now(),hypothesisId:'H1-H2'})}).catch(()=>{});
+    // #endregion
+
     setLoading(true);
     setError('');
     
     try {
       // Validate required fields
       if (!churchFormData.name?.trim() || !churchFormData.address?.trim() || !churchFormData.city?.trim() || !churchFormData.state?.trim() || !churchFormData.zip?.trim()) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:handleSaveChurch:early-return',message:'Early return required fields',timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
         setError('Please fill in all required church information fields');
         setLoading(false);
         return;
@@ -354,27 +364,49 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
       setSelectedChurch(updated);
       setChurches(churches.map(c => c.id === updated.id ? updated : c));
 
-      // Sync clergy: delete removed, update existing (name/role/photo), add new
+      // Sync clergy: delete removed (and their storage photo), update existing (name/role/photo), add new
       const formClergyIds = new Set(churchFormData.clergy.filter((c) => c.id).map((c) => c.id!));
-      const existingIds = (selectedChurch.clergy || []).map((c) => c.id);
-      for (const id of existingIds) {
-        if (!formClergyIds.has(id)) {
-          await churchService.deleteClergyMember(id);
+      const existingClergy = clergySnapshot;
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:clergy-sync:before-loop',message:'Before clergy loop',data:{existingClergyLength:existingClergy.length,formClergyLength:churchFormData.clergy.length,clergyImageFilesLength:clergyImageFiles.length,fileAtIndex:clergyImageFiles.map((f,i)=>({i,hasFile:!!f}))},timestamp:Date.now(),hypothesisId:'H2-H4'})}).catch(()=>{});
+      // #endregion
+      for (const existing of existingClergy) {
+        if (!formClergyIds.has(existing.id)) {
+          if (existing.imageUrl) await storageService.deleteClergyImageByUrl(existing.imageUrl);
+          await churchService.deleteClergyMember(existing.id);
         }
       }
       for (let i = 0; i < churchFormData.clergy.length; i++) {
         const member = churchFormData.clergy[i];
         const file = clergyImageFiles[i];
+        const previousClergy = member.id ? existingClergy.find((c) => c.id === member.id) : undefined;
+        const previousImageUrl = previousClergy?.imageUrl ?? '';
         let imageUrl = member.imageUrl || '';
         // Only use existing imageUrl if it's a real URL (http/https), not a blob from preview
         if (imageUrl.startsWith('blob:')) imageUrl = '';
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:clergy-loop:iter',message:'Clergy iteration',data:{i,memberId:member.id,hasFile:!!file,previousImageUrlLen:previousImageUrl?.length??0},timestamp:Date.now(),hypothesisId:'H2-H5'})}).catch(()=>{});
+        // #endregion
         if (file) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:clergy-loop:before-upload',message:'About to upload clergy image',data:{i,fileName:file.name,churchId:selectedChurch.id},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+          // #endregion
+          if (previousImageUrl) await storageService.deleteClergyImageByUrl(previousImageUrl);
           try {
             const uniqueKey = member.id ?? `new-${crypto.randomUUID()}`;
             imageUrl = await storageService.uploadClergyImage(file, selectedChurch.id, uniqueKey);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:clergy-loop:upload-success',message:'Clergy image upload success',data:{i,imageUrlLen:imageUrl?.length},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+            // #endregion
           } catch (e) {
             console.warn('Clergy image upload failed:', e);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:clergy-loop:upload-catch',message:'Clergy upload threw',data:{i,errorMessage:(e as Error)?.message},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+            // #endregion
           }
+        } else if (previousImageUrl && !imageUrl) {
+          await storageService.deleteClergyImageByUrl(previousImageUrl);
         }
         if (member.id) {
           await churchService.updateClergyMember(member.id, {
@@ -406,6 +438,9 @@ export const ChurchAdminDashboard: React.FC<ChurchAdminDashboardProps> = ({ onBa
       setChurchFormData(null);
       setClergyImageFiles([]);
     } catch (err: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChurchAdminDashboard.tsx:handleSaveChurch:catch',message:'Save church threw',data:{errorMessage:err?.message},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
       setError(err.message || 'Failed to update church');
     } finally {
       setLoading(false);

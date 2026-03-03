@@ -1,7 +1,7 @@
 import React from 'react';
 import { Upload, Plus, Trash2 } from 'lucide-react';
 import { Church, ServiceTime } from '../types';
-import { SPECIAL_PROGRAMS, DAYS_OF_WEEK, REPEAT_OPTIONS, LANGUAGES } from '../constants';
+import { SPECIAL_PROGRAMS, DAYS_OF_WEEK, REPEAT_OPTIONS, LANGUAGES, DEFAULT_CLERGY_IMAGE } from '../constants';
 
 export interface ServiceScheduleItem {
   day: string;
@@ -357,33 +357,35 @@ export const ChurchFormFields: React.FC<ChurchFormFieldsProps> = ({
               <div className="mt-3">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Photo (optional)</label>
                 <div className="flex items-center gap-3">
+                  <img
+                    src={member.imageUrl || DEFAULT_CLERGY_IMAGE}
+                    alt="Clergy photo"
+                    className="h-14 w-14 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                  />
                   {member.imageUrl ? (
-                    <div className="flex items-center gap-2">
-                      <img src={member.imageUrl} alt={member.name || 'Clergy'} className="h-14 w-14 rounded-full object-cover border border-gray-200" />
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-gray-500">Current photo</span>
-                        {onClergyImageChange && (
-                          <label className="text-xs text-blue-600 hover:text-blue-700 cursor-pointer">
-                            <input
-                              type="file"
-                              className="sr-only"
-                              accept=".png,.jpg,.jpeg,.webp"
-                              onChange={(e) => onClergyImageChange(index, e.target.files?.[0] ?? null)}
-                            />
-                            Replace
-                          </label>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onUpdateClergy(index, 'imageUrl', '');
-                            onClergyImageChange?.(index, null);
-                          }}
-                          className="text-xs text-red-600 hover:text-red-700 text-left"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-500">Current photo</span>
+                      {onClergyImageChange && (
+                        <label className="text-xs text-blue-600 hover:text-blue-700 cursor-pointer">
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept=".png,.jpg,.jpeg,.webp"
+                            onChange={(e) => onClergyImageChange(index, e.target.files?.[0] ?? null)}
+                          />
+                          Replace
+                        </label>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUpdateClergy(index, 'imageUrl', '');
+                          onClergyImageChange?.(index, null);
+                        }}
+                        className="text-xs text-red-600 hover:text-red-700 text-left"
+                      >
+                        Remove
+                      </button>
                     </div>
                   ) : (
                     <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">

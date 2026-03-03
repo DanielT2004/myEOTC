@@ -5,7 +5,7 @@ import { storageService } from '../services/storageService';
 import { authService } from '../services/authService';
 import { geocodingService } from '../services/geocodingService';
 import { Church, ServiceTime } from '../types';
-import { SPECIAL_PROGRAMS, DAYS_OF_WEEK, REPEAT_OPTIONS, LANGUAGES } from '../constants';
+import { SPECIAL_PROGRAMS, DAYS_OF_WEEK, REPEAT_OPTIONS, LANGUAGES, DEFAULT_CLERGY_IMAGE } from '../constants';
 
 interface RegisterChurchProps {
   onCancel: () => void;
@@ -853,10 +853,9 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
                       <div className="mt-3">
                         <label className="block text-xs font-medium text-gray-700 mb-1">Photo (optional)</label>
                         <div className="flex items-center gap-3">
+                          <img src={member.imageUrl || DEFAULT_CLERGY_IMAGE} alt="Clergy photo" className="h-14 w-14 rounded-full object-cover border border-gray-200 flex-shrink-0" />
                           {member.imageUrl ? (
-                            <div className="flex items-center gap-2">
-                              <img src={member.imageUrl} alt={member.name || 'Clergy'} className="h-14 w-14 rounded-full object-cover border border-gray-200" />
-                              <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1">
                                 <label className="text-xs text-blue-600 hover:text-blue-700 cursor-pointer">
                                   <input
                                     type="file"
@@ -874,7 +873,6 @@ export const RegisterChurch: React.FC<RegisterChurchProps> = ({ onCancel, onSucc
                                   Remove
                                 </button>
                               </div>
-                            </div>
                           ) : (
                             <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                               <Upload className="h-4 w-4" />

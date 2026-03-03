@@ -78,24 +78,89 @@ export const storageService = {
     return urlData.publicUrl;
   },
 
-  // Upload clergy member photo (optional)
+  // Upload clergy member photo (optional).
+  // Uses a unique filename per upload (clergyId-timestamp) so each replace creates a new object
+  // and we avoid relying on upsert overwrite (which may not persist with some RLS policies).
   async uploadClergyImage(file: File, churchId: string, clergyIdOrIndex: string): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${churchId}/clergy/${clergyIdOrIndex}.${fileExt}`;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storageService.ts:uploadClergyImage:entry',message:'Upload clergy image called',data:{fileName:file.name,churchId,clergyIdOrIndex,fileSize:file.size},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const uniqueSuffix = Date.now();
+    const fileName = `${churchId}/clergy/${clergyIdOrIndex}-${uniqueSuffix}.${fileExt}`;
     const filePath = `church-images/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('church-images')
-      .upload(filePath, file, { cacheControl: '3600', upsert: true });
+      .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
     if (uploadError) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storageService.ts:uploadClergyImage:error',message:'Clergy upload Supabase error',data:{message:uploadError.message,name:uploadError.name},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+      // #endregion
       console.error('[StorageService] Clergy image upload error:', uploadError);
       throw new Error('Failed to upload clergy photo. Please try again.');
     }
 
     const { data: urlData } = supabase.storage.from('church-images').getPublicUrl(filePath);
     if (!urlData?.publicUrl) throw new Error('Failed to get clergy photo URL.');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/67875fe6-8e9e-45bf-8143-996870d73d61',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storageService.ts:uploadClergyImage:success',message:'Clergy upload returned URL',data:{urlLen:urlData.publicUrl?.length},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
     return urlData.publicUrl;
+  },
+
+  /**
+   * Delete a clergy photo from storage by its public URL (e.g. when admin removes or replaces the photo).
+   * No-op if the URL is not from our church-images bucket.
+   */
+  async deleteClergyImageByUrl(imageUrl: string): Promise<void> {
+    if (!imageUrl || typeof imageUrl !== 'string') return;
+    if (imageUrl.startsWith('blob:')) return;
+
+    const bucket = 'church-images';
+
+    try {
+      const url = new URL(imageUrl);
+      const segments = url.pathname.split('/').filter(Boolean);
+      const publicIndex = segments.findIndex((s) => s === 'public');
+
+      if (publicIndex === -1 || publicIndex + 2 >= segments.length) {
+        console.warn('[StorageService] Could not parse clergy image URL for deletion:', imageUrl);
+        return;
+      }
+
+      const bucketFromUrl = segments[publicIndex + 1];
+      if (bucketFromUrl !== bucket) {
+        console.warn('[StorageService] Clergy image URL is for different bucket, skipping delete:', {
+          imageUrl,
+          bucketFromUrl,
+        });
+        return;
+      }
+
+      const path = segments.slice(publicIndex + 2).join('/');
+      if (!path) return;
+
+      const { error } = await supabase.storage.from(bucket).remove([path]);
+      if (error) {
+        console.warn('[StorageService] Failed to delete clergy image from storage:', {
+          imageUrl,
+          path,
+          error,
+        });
+      } else {
+        console.log('[StorageService] Deleted clergy image from storage:', {
+          imageUrl,
+          path,
+        });
+      }
+    } catch (error) {
+      console.warn('[StorageService] Error while parsing clergy image URL for deletion:', {
+        imageUrl,
+        error,
+      });
+    }
   },
 
   // Upload event image
