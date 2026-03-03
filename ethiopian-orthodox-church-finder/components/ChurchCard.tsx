@@ -19,7 +19,7 @@ export const ChurchCard: React.FC<ChurchCardProps> = ({ church, onViewDetails, i
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300 w-full h-full flex flex-col ${isCompact ? '' : 'md:flex-row'}`}>
-      <div className={`${isCompact ? 'w-full h-40 sm:h-44' : 'md:w-2/5 h-44 sm:h-48 md:h-auto'} relative bg-gray-200 flex-shrink-0`}>
+      <div className={`${isCompact ? 'w-full h-40 sm:h-44 min-w-0 overflow-hidden' : 'md:w-2/5 h-44 sm:h-48 md:h-auto min-w-0 overflow-hidden'} relative bg-gray-200 flex-shrink-0`}>
         <img 
           src={church.imageUrl || DEFAULT_CHURCH_IMAGE} 
           alt={church.name} 

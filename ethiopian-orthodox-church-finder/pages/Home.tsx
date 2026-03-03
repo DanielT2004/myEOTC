@@ -57,7 +57,7 @@ export const Home: React.FC<HomeProps> = ({
               </div>
             ) : (
               featuredChurches.map(church => (
-                <div key={church.id} className="min-w-[85vw] sm:min-w-[360px] sm:max-w-[360px] h-[400px] sm:h-[420px] flex-shrink-0 snap-start">
+                <div key={church.id} className="w-[85vw] max-w-[85vw] sm:w-[360px] sm:min-w-[360px] sm:max-w-[360px] h-[400px] sm:h-[420px] flex-shrink-0 snap-start">
                   <ChurchCard
                     church={church}
                     onViewDetails={onViewDetails}
@@ -90,7 +90,7 @@ export const Home: React.FC<HomeProps> = ({
               </div>
             ) : (
               featuredEvents.map(event => (
-                <div key={event.id} className="min-w-[85vw] sm:min-w-[360px] sm:max-w-[360px] h-[400px] sm:h-[420px] flex-shrink-0 snap-start">
+                <div key={event.id} className="w-[85vw] max-w-[85vw] sm:w-[360px] sm:min-w-[360px] sm:max-w-[360px] h-[400px] sm:h-[420px] flex-shrink-0 snap-start">
                   <EventCard
                     event={event}
                     onViewDetails={onViewEventDetails}

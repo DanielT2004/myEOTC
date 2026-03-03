@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChurchEvent } from '../types';
 import { MapPin, ArrowRight, Bell } from 'lucide-react';
@@ -32,11 +31,11 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onViewDetails, isPa
       className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full hover:shadow-lg transition-all duration-300 group ${onViewDetails ? 'cursor-pointer active:scale-[0.99]' : ''} ${isPast ? 'opacity-95' : ''}`}
       onClick={handleClick}
     >
-      <div className={`${isCompact ? 'h-40 sm:h-44' : 'h-36 sm:h-40'} relative bg-gray-200 overflow-hidden flex-shrink-0`}>
+      <div className={`${isCompact ? 'h-40 sm:h-44' : 'h-36 sm:h-40'} relative bg-gray-200 overflow-hidden flex-shrink-0 min-w-0`}>
         <img 
             src={event.imageUrl || DEFAULT_EVENT_IMAGE} 
             alt={event.title} 
-            className={`w-full h-full object-cover transition-transform duration-500 ${isPast ? 'opacity-60' : 'group-hover:scale-105'}`} 
+            className={`w-full h-full object-cover transition-transform duration-500 ${isPast ? 'opacity-60' : 'group-hover:scale-105'}`}
         />
         {isPast && (
           <div className="absolute inset-0 bg-black/30 pointer-events-none" aria-hidden />
